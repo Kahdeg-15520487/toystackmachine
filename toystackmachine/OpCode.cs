@@ -1,0 +1,22 @@
+﻿public enum OpCode
+{
+    NOP,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    BRANCH,
+    BRANCH_IF_NOT_ZERO,
+    BRANCH_IF_ZERO,
+    PUSH_IMMEDIATE,
+    GET,
+    SET,
+    DUP,
+    TRIP,
+    DISCARD,
+    PRINT,
+    PRINT_ARRAY,
+    CALL_HOST_FUNCTION,
+    HALT,
+    CMP
+}
