@@ -1,4 +1,7 @@
-﻿public class ToyEmitter
+﻿using System;
+using System.Collections.Generic;
+
+public class ToyEmitter
 {
     private readonly List<int> program;
     private readonly Dictionary<string, int> labels;
@@ -100,9 +103,9 @@
         program.AddRange(array);
     }
 
-    public (int[] binary, string[] dependency) Serialize()
+    public ToyProgram Serialize()
     {
         Emit(OpCode.HALT);
-        return (program.ToArray(), dependency.ToArray());
+        return new ToyProgram(program.ToArray(), dependency.ToArray(), labels);
     }
 }

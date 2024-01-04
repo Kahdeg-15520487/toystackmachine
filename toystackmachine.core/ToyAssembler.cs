@@ -1,4 +1,46 @@
-﻿public class ToyAssembler
+﻿using BidirectionalMap;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+public class ToyProgram
+{
+    public int[] ROM;
+    public string[] Dependency;
+    public BiMap<string, int> Labels;
+
+    public ToyProgram(int[] rom, string[] depedency, Dictionary<string, int> labels)
+    {
+        this.ROM = rom;
+        this.Dependency = depedency;
+        this.Labels = new BiMap<string, int>(labels);
+    }
+
+    public override string ToString()
+    {
+        return ToyDisassembler.Diassemble(this);
+        //StringBuilder sb = new StringBuilder();
+        //sb.AppendLine("Depedency:");
+        //foreach (var dep in Depedency)
+        //{
+        //    sb.Append("  ");
+        //    sb.AppendLine(dep);
+        //}
+        //sb.AppendLine("Labels:");
+        //foreach (var label in Labels.ToList())
+        //{
+        //    sb.AppendLine($"  {label.Key} -> {label.Value}");
+        //}
+        //sb.AppendLine("ROM:");
+        //sb.AppendLine(ToyDisassembler.Diassemble(ROM));
+
+        //return sb.ToString();
+    }
+}
+
+public class ToyAssembler
 {
     ToyLexer lexer;
     ToyEmitter emitter;
@@ -24,7 +66,7 @@
         }
     }
 
-    public (int[] binary, string[] depedency) Assemble()
+    public ToyProgram Assemble()
     {
         while (!lexer.IsEOF)
         {
@@ -55,7 +97,7 @@
 
     private void AssembleInstruction()
     {
-        if (ParseOpCode(currentToken.value, out var opcode))
+        if (OpCodeParser.ParseOpCode(currentToken.value, out var opcode))
         {
             Eat(TokenType.Identifier);
             switch (opcode)
@@ -87,9 +129,9 @@
                         var hostFunctionParameters = new List<int>();
                         while (!lexer.IsEOF && currentToken.type != TokenType.NewLine)
                         {
-                            Eat(TokenType.Number, TokenType.HexNumber, TokenType.BinNumber);
                             SkipWhiteSpace();
                             hostFunctionParameters.Add(GetNumber(currentToken));
+                            Eat(TokenType.Number, TokenType.HexNumber, TokenType.BinNumber);
                         }
                         emitter.EmitHostFunctionCall(hostFunctionName, hostFunctionParameters.ToArray());
                     }
@@ -106,73 +148,6 @@
         else
         {
             throw new Exception($"Invalid opcode {currentToken.value}");
-        }
-    }
-
-    private bool ParseOpCode(string token, out OpCode opcode)
-    {
-        switch (token)
-        {
-            case "nop":
-                opcode = OpCode.NOP;
-                return true;
-            case "add":
-                opcode = OpCode.ADD;
-                return true;
-            case "sub":
-                opcode = OpCode.SUB;
-                return true;
-            case "mul":
-                opcode = OpCode.MUL;
-                return true;
-            case "div":
-                opcode = OpCode.DIV;
-                return true;
-            case "cmp":
-                opcode = OpCode.CMP;
-                return true;
-            case "br":
-                opcode = OpCode.BRANCH;
-                return true;
-            case "brzero":
-                opcode = OpCode.BRANCH_IF_ZERO;
-                return true;
-            case "brnzero":
-                opcode = OpCode.BRANCH_IF_NOT_ZERO;
-                return true;
-            case "push":
-                opcode = OpCode.PUSH_IMMEDIATE;
-                return true;
-            case "get":
-                opcode = OpCode.GET;
-                return true;
-            case "set":
-                opcode = OpCode.SET;
-                return true;
-            case "dup":
-                opcode = OpCode.DUP;
-                return true;
-            case "trip":
-                opcode = OpCode.TRIP;
-                return true;
-            case "discard":
-                opcode = OpCode.DISCARD;
-                return true;
-            case "print":
-                opcode = OpCode.PRINT;
-                return true;
-            case "printarray":
-                opcode = OpCode.PRINT_ARRAY;
-                return true;
-            case "callhost":
-                opcode = OpCode.CALL_HOST_FUNCTION;
-                return true;
-            case "halt":
-                opcode = OpCode.HALT;
-                return true;
-            default:
-                opcode = OpCode.NOP;
-                return false;
         }
     }
 
@@ -201,13 +176,58 @@
 
     private void AssembleDirective()
     {
-        var directive = currentToken.value.Split(" ");
+        var directive = currentToken.value;
         Eat(TokenType.Directive);
 
-        switch (directive[0])
+        switch (directive)
         {
+            case "config":
+                SkipWhiteSpace();
+                Eat(TokenType.Identifier);
+                SkipWhiteSpace();
+                Eat(TokenType.Number);
+                break;
             case "hostfunction":
-                emitter.AddDepedency(directive[1]);
+                SkipWhiteSpace();
+                var hostfunction = currentToken.value;
+                Eat(TokenType.Identifier);
+                emitter.AddDepedency(hostfunction);
+                break;
+            case "data":
+                SkipWhiteSpace();
+                var dataPtrToken = currentToken;
+                Eat(TokenType.Number, TokenType.HexNumber, TokenType.BinNumber);
+                SkipWhiteSpace();
+                var dataPtr = GetNumber(dataPtrToken);
+                var dataContent = currentToken;
+                Eat(TokenType.String); //todo int array
+                switch (dataContent.type)
+                {
+                    case TokenType.String:
+                        {
+                            var length = dataContent.value.Length;
+                            var data = dataContent.value.ToArray();
+                            for (int i = 0; i < length; i++)
+                            {
+                                emitter.Emit(OpCode.PUSH_IMMEDIATE, data[i]);
+                            }
+                            emitter.Emit(OpCode.PUSH_IMMEDIATE, length);
+                            emitter.Emit(OpCode.SETARRAY, dataPtr);
+                        }
+                        break;
+                    case TokenType.Char:
+                        break;
+                    case TokenType.Label:
+                        break;
+                    case TokenType.Number:
+                        break;
+                    case TokenType.HexNumber:
+                        break;
+                    case TokenType.BinNumber:
+                        break;
+                    default:
+                        break;
+                }
                 break;
             default:
                 break;

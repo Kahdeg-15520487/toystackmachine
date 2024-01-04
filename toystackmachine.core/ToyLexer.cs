@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 
 public class ToyLexer
 {
@@ -121,7 +122,7 @@ public class ToyLexer
         column++;
 
         StringBuilder directive = new StringBuilder();
-        while (index < source.Length && source[index] != '\n')
+        while (index < source.Length && char.IsLetter(source[index]))
         {
             directive.Append(source[index]);
             index++;

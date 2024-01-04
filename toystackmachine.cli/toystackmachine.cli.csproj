@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Cloudtoid.Interprocess" Version="2.0.0-alpha176" />
+    <ProjectReference Include="..\toystackmachine.core\toystackmachine.core.csproj" />
   </ItemGroup>
 
 </Project>

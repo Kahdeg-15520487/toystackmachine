@@ -1,4 +1,8 @@
-﻿public class ToyStackMachine
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class ToyStackMachine
 {
     public static readonly int MinimumMemorySize = 1024;
     private readonly ToyStackMachineMemoryConfiguration config;
@@ -21,23 +25,23 @@
         hostFunctions = new List<Func<int[], int[], int>>();
     }
 
-    public void LoadProgram((int[] binary, string[] depedency) program)
+    public void LoadProgram(ToyProgram program)
     {
-        if (program.binary.Length >= config.StackStart - config.ProgramStart)
+        if (program.ROM.Length >= config.StackStart - config.ProgramStart)
         {
             throw new ArgumentOutOfRangeException($"Program size must be less than {config.StackStart - config.ProgramStart}");
         }
 
-        var availableDepedency = program.depedency.Intersect(hostFunctionIndex.Keys).ToList();
-        if (availableDepedency.Count < program.depedency.Length)
+        var availableDepedency = program.Dependency.Intersect(hostFunctionIndex.Keys).ToList();
+        if (availableDepedency.Count < program.Dependency.Length)
         {
-            throw new KeyNotFoundException($"Runtime missing dependency:{Environment.NewLine}{string.Join($",{Environment.NewLine}\t", program.depedency.Except(availableDepedency))}{Environment.NewLine}");
+            throw new KeyNotFoundException($"Runtime missing dependency:{Environment.NewLine}{string.Join($",{Environment.NewLine}\t", program.Dependency.Except(availableDepedency))}{Environment.NewLine}");
         }
 
-        Array.Copy(program.binary, 0, memory, config.ProgramStart, program.binary.Length);
+        Array.Copy(program.ROM, 0, memory, config.ProgramStart, program.ROM.Length);
         ip = config.ProgramStart;
         Console.WriteLine("loaded:");
-        Console.WriteLine(ToyDisassembler.Diassemble(program.binary));
+        Console.WriteLine(ToyDisassembler.Diassemble(program));
     }
 
     public void RegisterHostFuntion(string functionName, Func<int[], int[], int> hostFuntion)
@@ -228,6 +232,12 @@
                     {
                         int pointer = memory[++ip];
                         memory[pointer] = Pop();
+                    }
+                    break;
+                case OpCode.SETARRAY:
+                    {
+                        int pointer = memory[++ip];
+                        SetArrayAt(pointer, PopArray());
                     }
                     break;
                 case OpCode.DUP:
