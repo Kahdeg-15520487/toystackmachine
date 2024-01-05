@@ -1,44 +1,7 @@
-﻿using BidirectionalMap;
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
-public class ToyProgram
-{
-    public int[] ROM;
-    public string[] Dependency;
-    public BiMap<string, int> Labels;
-
-    public ToyProgram(int[] rom, string[] depedency, Dictionary<string, int> labels)
-    {
-        this.ROM = rom;
-        this.Dependency = depedency;
-        this.Labels = new BiMap<string, int>(labels);
-    }
-
-    public override string ToString()
-    {
-        return ToyDisassembler.Diassemble(this);
-        //StringBuilder sb = new StringBuilder();
-        //sb.AppendLine("Depedency:");
-        //foreach (var dep in Depedency)
-        //{
-        //    sb.Append("  ");
-        //    sb.AppendLine(dep);
-        //}
-        //sb.AppendLine("Labels:");
-        //foreach (var label in Labels.ToList())
-        //{
-        //    sb.AppendLine($"  {label.Key} -> {label.Value}");
-        //}
-        //sb.AppendLine("ROM:");
-        //sb.AppendLine(ToyDisassembler.Diassemble(ROM));
-
-        //return sb.ToString();
-    }
-}
 
 public class ToyAssembler
 {

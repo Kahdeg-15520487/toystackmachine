@@ -1,196 +1,72 @@
-﻿
+﻿using System;
+using System.IO;
 
-testToyAssembler2();
+using CommandLine;
 
-//testToyAssembler();
-
-//testToyLexer();
-
-//testToyStackMachine();
-
-static void testToyAssembler2()
+namespace ToyAssemblerCLI
 {
-    ToyLexer lexer = new ToyLexer(
-@"
-// declare machine's spec
-#config memsize 2048
-#config programstart 64
-#config stackstart 512
-#config stackmax 1024
-#config screenstart 1024
-#config screenwidth 32
-#config screenheight 32
-
-#hostfunction hostadd
-#hostfunction hostinput
-#hostfunction hostprint
-
-callhost hostinput
-set 700
-callhost hostinput
-set 701
-get 700
-get 701
-add
-print
-halt
-");
-
-    ToyAssembler assembler = new ToyAssembler(lexer);
-    var prog = assembler.Assemble();
-
-    Console.WriteLine(ToyDisassembler.Diassemble(prog));
-
-    ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
-
-    vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
-    vm.RegisterHostFuntion("hostinput", (m, a) => { Console.Write("> "); return int.TryParse(Console.ReadLine(), out int res) ? res : 0; });
-    vm.RegisterHostFuntion("hostprint", (m, a) =>
+    class Program
     {
-        var s = new string(vm.GetArrayAt(a[0]).Select(i => (char)i).ToArray());
-        Console.Write(s);
-        return 0;
-    });
-    vm.LoadProgram(prog);
-    vm.Run();
-}
+        static void Main(string[] args)
+        {
+            Parser.Default.ParseArguments<RunOptions, CompileOptions>(args)
+                .WithParsed<RunOptions>(opts => Run(opts))
+                .WithParsed<CompileOptions>(opts => Compile(opts));
+        }
 
+        static void Run(RunOptions opts)
+        {
+            // Load the binary file
+            using (FileStream fs = new FileStream(opts.BinaryFile, FileMode.Open))
+            {
+                ToyProgram.Deserialize(fs, out ToyProgram program);
 
-static void testToyAssembler()
-{
+                // Load the program into the ToyStackMachine and run it
+                ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration());
+                vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
+                vm.RegisterHostFuntion("hostinput", (m, a) => { Console.Write("> "); return int.TryParse(Console.ReadLine(), out int res) ? res : 0; });
+                vm.RegisterHostFuntion("hostprint", (m, a) =>
+                {
+                    var s = new string(vm.GetArrayAt(a[0]).Select(i => (char)i).ToArray());
+                    Console.Write(s);
+                    return 0;
+                });
+                vm.LoadProgram(program);
+                vm.Run();
+            }
+        }
 
-    ToyLexer lexer = new ToyLexer(
-@"
-// declare machine's spec
-#config memsize 2048
-#config programstart 64
-#config stackstart 512
-#config stackmax 1024
-#config screenstart 1024
-#config screenwidth 32
-#config screenheight 32
+        static void Compile(CompileOptions opts)
+        {
+            // Read the text file
+            string instructions = File.ReadAllText(opts.InstructionFile);
 
-#hostfunction hostadd
-#hostfunction hostexp
-#hostfunction hostinput
-#hostfunction hostprint
+            // Instantiate ToyAssembler and assemble the instructions
+            ToyAssembler assembler = new ToyAssembler(new ToyLexer(instructions));
+            ToyProgram program = assembler.Assemble();
 
-#data 900 ""count down from""
-
-callhost hostprint 900
-discard
-callhost hostinput
-push 1
-add
-set 700
-loopstart:
-get 700
-push 1
-sub
-trip
-set 700
-print
-brzero loopend
-br loopstart
-loopend:
-halt
-");
-
-    ToyAssembler assembler = new ToyAssembler(lexer);
-    var prog = assembler.Assemble();
-
-    Console.WriteLine(ToyDisassembler.Diassemble(prog));
-
-    ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
-
-    vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
-    vm.RegisterHostFuntion("hostexp", (m, a) => (int)Math.Pow(a[0], a[1]));
-    vm.RegisterHostFuntion("hostinput", (m, a) => { Console.Write("> "); return int.TryParse(Console.ReadLine(), out int res) ? res : 0; });
-    vm.RegisterHostFuntion("hostprint", (m, a) =>
-    {
-        var s = new string(vm.GetArrayAt(a[0]).Select(i => (char)i).ToArray());
-        Console.Write(s);
-        return 0;
-    });
-    vm.LoadProgram(prog);
-    vm.Run();
-}
-
-static void testToyLexer()
-{
-    ToyLexer lexer = new ToyLexer(
-@"
-// declare machine's spec
-#memsize 2048
-#programstart 64
-#stackstart 512
-#stackmax 1024
-#screenstart 1024
-#screenwidth 32
-#screenheight 32
-
-#hostfunction hostadd
-#hostfunction hostexp
-#hostfunction hostinput
-
-#data 700 ""test""
-
-hostadd 5 2 10
-print
-
-callhost hostinput
-set 700
-loopstart:
-get 700
-push 1
-sub
-trip
-set 700
-print
-brzero loopend
-br loopstart
-loopend:
-halt
-");
-    while (!lexer.IsEOF)
-    {
-        Console.WriteLine(lexer.NextToken());
+            // Serialize the ToyProgram to a binary file
+            using (Stream fs = new FileStream(opts.OutputFile, FileMode.Create))
+            {
+                ToyProgram.Serialize(program, fs);
+            }
+        }
     }
-}
 
-static void testToyStackMachine()
-{
-    ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
-    ToyEmitter e = new ToyEmitter();
+    [Verb("run", HelpText = "Run a ToyAssembler binary.")]
+    public class RunOptions
+    {
+        [Value(0, MetaName = "binary", HelpText = "Binary file to run.", Required = true)]
+        public string BinaryFile { get; set; }
+    }
 
-    vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
-    vm.RegisterHostFuntion("hostexp", (m, a) => (int)Math.Pow(a[0], a[1]));
-    vm.RegisterHostFuntion("hostinput", (m, a) => int.TryParse(Console.ReadLine(), out int res) ? res : 0);
+    [Verb("compile", HelpText = "Compile a ToyAssembler instruction file.")]
+    public class CompileOptions
+    {
+        [Value(0, MetaName = "instructions", HelpText = "Instruction file to compile.", Required = true)]
+        public string InstructionFile { get; set; }
 
-    e.AddDepedency("hostadd");
-    e.AddDepedency("hostexp");
-    e.AddDepedency("hostinput");
-
-    e.EmitHostFunctionCall("hostadd", new int[] { 5, 2, 10 });
-    e.Emit(OpCode.PRINT);
-    e.EmitHostFunctionCall("hostexp", new int[] { 2, 10 });
-    e.Emit(OpCode.PRINT);
-
-    e.EmitHostFunctionCall("hostinput");    // callhost hostinput
-    e.Emit(OpCode.SET, 700);                // pop and store at 700
-    e.EmitLabel("loopstart");               // loopstart:
-    e.Emit(OpCode.GET, 700);                // load from 700
-    e.EmitPushImmediate(1);                 // push 1
-    e.Emit(OpCode.SUB);                     // sub
-    e.Emit(OpCode.TRIP);                    // trip
-    e.Emit(OpCode.SET, 700);                // pop and store at 700
-    e.Emit(OpCode.PRINT);                   // print
-    e.Emit(OpCode.BRANCH_IF_ZERO, 2);       // brzero loopend
-    e.EmitJump(OpCode.BRANCH, "loopstart"); // br loopstart
-    e.EmitLabel("loopend");
-    e.Emit(OpCode.HALT);
-
-    vm.LoadProgram(e.Serialize());
-
-    vm.Run();
+        [Value(1, MetaName = "output", HelpText = "Output file for the compiled binary.", Required = true)]
+        public string OutputFile { get; set; }
+    }
 }
