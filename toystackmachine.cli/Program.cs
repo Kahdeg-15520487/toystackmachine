@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Diagnostics.Metrics;
 using System.IO;
 
 using CommandLine;
+using toystackmachine.cli;
+using toystackmachine.core.ToyAssembly;
 
 namespace ToyAssemblerCLI
 {
@@ -9,9 +12,11 @@ namespace ToyAssemblerCLI
     {
         static void Main(string[] args)
         {
-            Parser.Default.ParseArguments<RunOptions, CompileOptions>(args)
-                .WithParsed<RunOptions>(opts => Run(opts))
-                .WithParsed<CompileOptions>(opts => Compile(opts));
+            Test.RunTest();
+
+            //Parser.Default.ParseArguments<RunOptions, CompileOptions>(args)
+            //.WithParsed<RunOptions>(opts => Run(opts))
+            //.WithParsed<CompileOptions>(opts => Compile(opts));
         }
 
         static void Run(RunOptions opts)
@@ -42,7 +47,7 @@ namespace ToyAssemblerCLI
             string instructions = File.ReadAllText(opts.InstructionFile);
 
             // Instantiate ToyAssembler and assemble the instructions
-            ToyAssembler assembler = new ToyAssembler(new ToyLexer(instructions));
+            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(instructions));
             ToyProgram program = assembler.Assemble();
 
             // Serialize the ToyProgram to a binary file

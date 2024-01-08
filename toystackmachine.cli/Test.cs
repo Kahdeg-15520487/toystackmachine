@@ -1,10 +1,17 @@
-﻿namespace toystackmachine.cli
+﻿using toystackmachine.core.ToyAssembly;
+using toystackmachine.core.ToyLang;
+
+namespace toystackmachine.cli
 {
     static class Test
     {
         public static void RunTest()
         {
-            testToyAssembler2();
+            testToyLangParser();
+
+            //testToyLangLexer();
+
+            //testToyAssembler2();
 
             //testToyAssembler();
 
@@ -13,9 +20,43 @@
             //testToyStackMachine();
         }
 
+        static void testToyLangParser()
+        {
+            string input = @"
+function add(a, b) {
+    return a + b;
+}
+function countDown(n) {
+    while (n > 0) {
+        print(n);
+        n = n - 1;
+    }
+}
+";
+            ToyLangLexer lexer = new ToyLangLexer(input);
+            ToyLangParser parser = new ToyLangParser(lexer);
+            var ast = parser.Program();
+            Console.WriteLine(ast);
+
+        }
+
+        static void testToyLangLexer()
+        {
+            string input = @"
+function add(a, b) {
+    return a + b;
+}
+";
+            ToyLangLexer lexer = new ToyLangLexer(input);
+            while (!lexer.IsEOF)
+            {
+                Console.WriteLine(lexer.NextToken());
+            }
+        }
+
         static void testToyAssembler2()
         {
-            ToyLexer lexer = new ToyLexer(
+            ToyAssemblyLexer lexer = new ToyAssemblyLexer(
         @"
 // declare machine's spec
 #config memsize 2048
@@ -44,7 +85,7 @@ halt
             ToyAssembler assembler = new ToyAssembler(lexer);
             var prog = assembler.Assemble();
 
-            Console.WriteLine(ToyDisassembler.Diassemble(prog));
+            Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
 
             ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
 
@@ -64,7 +105,7 @@ halt
         static void testToyAssembler()
         {
 
-            ToyLexer lexer = new ToyLexer(
+            ToyAssemblyLexer lexer = new ToyAssemblyLexer(
         @"
 // declare machine's spec
 #config memsize 2048
@@ -104,7 +145,7 @@ halt
             ToyAssembler assembler = new ToyAssembler(lexer);
             var prog = assembler.Assemble();
 
-            Console.WriteLine(ToyDisassembler.Diassemble(prog));
+            Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
 
             ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
 
@@ -123,7 +164,7 @@ halt
 
         static void testToyLexer()
         {
-            ToyLexer lexer = new ToyLexer(
+            ToyAssemblyLexer lexer = new ToyAssemblyLexer(
         @"
 // declare machine's spec
 #memsize 2048

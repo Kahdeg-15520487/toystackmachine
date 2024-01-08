@@ -1,0 +1,32 @@
+// declare machine's spec
+#config memsize 2048
+#config programstart 64
+#config stackstart 512
+#config stackmax 1024
+#config screenstart 1024
+#config screenwidth 32
+#config screenheight 32
+
+#hostfunction hostadd
+#hostfunction hostinput
+#hostfunction hostprint
+
+#data 900 "count down from"
+
+callhost hostprint 900
+discard
+callhost hostinput
+push 1
+add
+set 700
+loopstart:
+get 700
+push 1
+sub
+trip
+set 700
+print
+brzero loopend
+br loopstart
+loopend:
+halt

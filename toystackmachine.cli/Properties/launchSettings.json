@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "toystackmachine.cli": {
+      "commandName": "Project",
+      "commandLineArgs": ""
+    }
+  }
+}

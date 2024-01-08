@@ -15,4 +15,13 @@
     <ProjectReference Include="..\toystackmachine.core\toystackmachine.core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="examples\add.tasm">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="examples\countdown.tasm">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

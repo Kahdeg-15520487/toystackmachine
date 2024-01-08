@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using toystackmachine.core.ToyAssembly;
 
 public class ToyProgram
 {
@@ -88,6 +89,6 @@ public class ToyProgram
 
     public override string ToString()
     {
-        return ToyDisassembler.Diassemble(this);
+        return ToyAssemblyDisassembler.Diassemble(this);
     }
 }

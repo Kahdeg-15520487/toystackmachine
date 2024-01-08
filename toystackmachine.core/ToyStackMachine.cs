@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using toystackmachine.core.ToyAssembly;
+
 public class ToyStackMachine
 {
     public static readonly int MinimumMemorySize = 1024;
@@ -41,7 +43,7 @@ public class ToyStackMachine
         Array.Copy(program.ROM, 0, memory, config.ProgramStart, program.ROM.Length);
         ip = config.ProgramStart;
         Console.WriteLine("loaded:");
-        Console.WriteLine(ToyDisassembler.Diassemble(program));
+        Console.WriteLine(ToyAssemblyDisassembler.Diassemble(program));
     }
 
     public void RegisterHostFuntion(string functionName, Func<int[], int[], int> hostFuntion)
