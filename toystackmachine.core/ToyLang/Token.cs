@@ -2,22 +2,22 @@
 {
     public class Token
     {
-        public readonly TokenType type;
-        public readonly int line;
-        public readonly int column;
-        public readonly string value;
+        public readonly TokenType Type;
+        public readonly int Line;
+        public readonly int Column;
+        public readonly string Value;
 
         public Token(TokenType type, int line, int column, string value)
         {
-            this.type = type;
-            this.line = line;
-            this.column = column;
-            this.value = value;
+            this.Type = type;
+            this.Line = line;
+            this.Column = column;
+            this.Value = value;
         }
 
         public override string ToString()
         {
-            return $"[{type} {line}:{column}] {value}";
+            return $"[{Type} {Line}:{Column}] {Value}";
         }
     }
     public enum TokenType
@@ -37,7 +37,8 @@
 
         // Keywords as individual token types
         If, Else, While, Do, For, Break, Continue, Return, Var,
-        Function, Print, Input, True, False,
+        Function, Print, Read, True, False,
+        Host,
 
         OpenParenthesis,
         CloseParenthesis,
@@ -51,14 +52,16 @@
         Multiply,
         Divide,
         Modulo,
+        LessThan,
+        LessThanOrEqual,
+        GreaterThan,
+        GreaterThanOrEqual,
+        Equal,
+        NotEqual,
+        Not,
 
         Assign,
         Semicolon,
         Comma,
-        LessThan,
-        GreaterThan,
-        Equal,
-        NotEqual,
-        Not,
     }
 }

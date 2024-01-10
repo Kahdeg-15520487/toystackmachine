@@ -7,7 +7,11 @@ namespace toystackmachine.cli
     {
         public static void RunTest()
         {
-            testToyLangParser();
+            testToyAssemblerCallRet();
+
+            //testToyLangCompiler();
+
+            //testToyLangParser();
 
             //testToyLangLexer();
 
@@ -18,6 +22,75 @@ namespace toystackmachine.cli
             //testToyLexer();
 
             //testToyStackMachine();
+        }
+
+        static void testToyAssemblerCallRet()
+        {
+            string input = @"
+// declare machine's spec
+#config memsize 2048
+#config programstart 64
+#config stackstart 512
+#config stackmax 1024
+#config screenstart 1024
+#config screenwidth 32
+#config screenheight 32
+
+#hostfunction hostadd
+#hostfunction hostinput
+#hostfunction hostprint
+
+callhost hostinput
+set 700
+callhost hostinput
+set 701
+get 700
+get 701
+call add1
+print
+halt
+
+add1:
+	add
+	ret
+";
+            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(input));
+            var prog = assembler.Assemble();
+
+            Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
+
+            ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
+
+            vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
+            vm.RegisterHostFuntion("hostinput", (m, a) => { Console.Write("> "); return int.TryParse(Console.ReadLine(), out int res) ? res : 0; });
+            vm.RegisterHostFuntion("hostprint", (m, a) =>
+            {
+                var s = new string(vm.GetArrayAt(a[0]).Select(i => (char)i).ToArray());
+                Console.Write(s);
+                return 0;
+            });
+            vm.LoadProgram(prog);
+            vm.Run();
+        }
+
+        static void testToyLangCompiler()
+        {
+            string input = @"
+function add(a, b) {
+    return a + b;
+}
+function countDown(n) {
+    while (n > 0) {
+        print(n);
+        n = n - 1;
+    }
+}
+";
+            ToyLangCompiler compiler = new ToyLangCompiler();
+            ToyLangParser parser = new ToyLangParser(new ToyLangLexer(input));
+            var ast = parser.Program();
+            var prog = compiler.Compile(ast, new ToyStackMachineMemoryConfiguration());
+            Console.WriteLine(string.Join(Environment.NewLine, prog));
         }
 
         static void testToyLangParser()

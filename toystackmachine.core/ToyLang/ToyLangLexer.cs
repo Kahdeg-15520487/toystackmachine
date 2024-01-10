@@ -15,7 +15,7 @@ namespace toystackmachine.core.ToyLang
         private static readonly HashSet<string> _keywords = new HashSet<string>
         {
             "if", "else", "while", "do", "for", "break", "continue", "return", "var",
-            "function", "print", "input", "true", "false",
+            "function", "print", "read", "true", "false",
         };
 
         public ToyLangLexer(string input)
@@ -134,12 +134,32 @@ namespace toystackmachine.core.ToyLang
                     return new Token(TokenType.Minus, _line, _column, current.ToString());
                 case '*':
                     return new Token(TokenType.Multiply, _line, _column, current.ToString());
+                case '%':
+                    return new Token(TokenType.Modulo, _line, _column, current.ToString());
                 case ';':
                     return new Token(TokenType.Semicolon, _line, _column, current.ToString());
                 case '<':
-                    return new Token(TokenType.LessThan, _line, _column, current.ToString());
+                    if (_input[_position] == '=')
+                    {
+                        _position++;
+                        _column++;
+                        return new Token(TokenType.LessThanOrEqual, _line, _column, "<=");
+                    }
+                    else
+                    {
+                        return new Token(TokenType.LessThan, _line, _column, current.ToString());
+                    }
                 case '>':
-                    return new Token(TokenType.GreaterThan, _line, _column, current.ToString());
+                    if (_input[_position] == '=')
+                    {
+                        _position++;
+                        _column++;
+                        return new Token(TokenType.GreaterThanOrEqual, _line, _column, ">=");
+                    }
+                    else
+                    {
+                        return new Token(TokenType.GreaterThan, _line, _column, current.ToString());
+                    }
                 case '=':
                     if (_input[_position] == '=')
                     {
@@ -169,17 +189,17 @@ namespace toystackmachine.core.ToyLang
 
         public Token ConvertToken(Token token)
         {
-            if (token.type == TokenType.HexNumber)
+            if (token.Type == TokenType.HexNumber)
             {
-                string value = token.value.Substring(2); // remove '0x'
+                string value = token.Value.Substring(2); // remove '0x'
                 int number = Convert.ToInt32(value, 16);
-                return new Token(TokenType.Number, token.line, token.column, number.ToString());
+                return new Token(TokenType.Number, token.Line, token.Column, number.ToString());
             }
-            else if (token.type == TokenType.BinNumber)
+            else if (token.Type == TokenType.BinNumber)
             {
-                string value = token.value.Substring(1); // remove 'b'
+                string value = token.Value.Substring(1); // remove 'b'
                 int number = Convert.ToInt32(value, 2);
-                return new Token(TokenType.Number, token.line, token.column, number.ToString());
+                return new Token(TokenType.Number, token.Line, token.Column, number.ToString());
             }
             else
             {

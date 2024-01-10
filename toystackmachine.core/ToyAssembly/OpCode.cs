@@ -3,23 +3,40 @@
     public enum OpCode
     {
         NOP,
+
         ADD,
         SUB,
         MUL,
         DIV,
+        MOD,
+        LT,
+        GT,
+        EQ,
+        NE,
+        LE,
+        GE,
+        NOT,
+
         BRANCH,
         BRANCH_IF_NOT_ZERO,
         BRANCH_IF_ZERO,
+
+        CALL,
+        RET,
+
         PUSH_IMMEDIATE,
         GET,
         SET,
         SETARRAY,
+
         DUP,
         TRIP,
         DISCARD,
+
         PRINT,
         PRINT_ARRAY,
         CALL_HOST_FUNCTION,
+
         HALT,
         CMP
     }
@@ -56,6 +73,12 @@
                     return true;
                 case "brnzero":
                     opcode = OpCode.BRANCH_IF_NOT_ZERO;
+                    return true;
+                case "call":
+                    opcode = OpCode.CALL;
+                    return true;
+                case "ret":
+                    opcode = OpCode.RET;
                     return true;
                 case "push":
                     opcode = OpCode.PUSH_IMMEDIATE;
@@ -118,6 +141,10 @@
                     return "brzero";
                 case OpCode.BRANCH_IF_NOT_ZERO:
                     return "brnzero";
+                case OpCode.CALL:
+                    return "call";
+                case OpCode.RET:
+                    return "ret";
                 case OpCode.PUSH_IMMEDIATE:
                     return "push";
                 case OpCode.GET:

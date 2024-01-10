@@ -19,6 +19,9 @@
     <None Update="examples\add.tasm">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="examples\callret.tasm">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="examples\countdown.tasm">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

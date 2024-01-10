@@ -11,6 +11,7 @@ public class ToyStackMachine
     private int[] memory;
     private int ip;
     private int sp;
+    private Stack<int> callStack;
     private Dictionary<string, int> hostFunctionIndex;
     private List<Func<int[], int[], int>> hostFunctions;
 
@@ -22,6 +23,7 @@ public class ToyStackMachine
         memory = new int[config.MemorySize];
         ip = config.ProgramStart;
         sp = config.StackStart;
+        callStack = new Stack<int>();
 
         hostFunctionIndex = new Dictionary<string, int>();
         hostFunctions = new List<Func<int[], int[], int>>();
@@ -172,7 +174,16 @@ public class ToyStackMachine
         while (ip < memory.Length)
         {
             OpCode opcode = (OpCode)memory[ip];
+            //Console.WriteLine("=====");
+            //Console.WriteLine($"ip: {ip - config.ProgramStart}");
+            //Console.WriteLine($"sp: {sp}");
+            //Console.WriteLine($"opcode: {opcode}");
+            //Console.WriteLine($"callstack: {string.Join(", ", callStack.Select(c => c - config.ProgramStart))}");
+            //Console.WriteLine($"stack: {string.Join(", ", GetActiveStack())}");
+            //Console.WriteLine("=====");
+            //Console.ReadLine();
             int a, b;
+            bool isJump = false;
 
             switch (opcode)
             {
@@ -198,29 +209,82 @@ public class ToyStackMachine
                     a = Pop();
                     Push(a / b);
                     break;
+                case OpCode.MOD:
+                    b = Pop();
+                    a = Pop();
+                    Push(a % b);
+                    break;
                 case OpCode.CMP:
                     b = Pop();
                     a = Pop();
                     Push(a > b ? 1 : a < b ? -1 : 0);
                     break;
+                case OpCode.EQ:
+                    b = Pop();
+                    a = Pop();
+                    Push(a == b ? 1 : 0);
+                    break;
+                case OpCode.NE:
+                    b = Pop();
+                    a = Pop();
+                    Push(a != b ? 1 : 0);
+                    break;
+                case OpCode.LT:
+                    b = Pop();
+                    a = Pop();
+                    Push(a < b ? 1 : 0);
+                    break;
+                case OpCode.GT:
+                    b = Pop();
+                    a = Pop();
+                    Push(a > b ? 1 : 0);
+                    break;
+                case OpCode.LE:
+                    b = Pop();
+                    a = Pop();
+                    Push(a <= b ? 1 : 0);
+                    break;
+                case OpCode.GE:
+                    b = Pop();
+                    a = Pop();
+                    Push(a >= b ? 1 : 0);
+                    break;
+                case OpCode.NOT:
+                    a = Pop();
+                    Push(a == 0 ? 1 : 0);
+                    break;
+
+
                 case OpCode.BRANCH:
-                    int offset = memory[++ip];
-                    ip += offset;
+                    ip = config.ProgramStart + memory[++ip];
+                    isJump = true;
                     break;
                 case OpCode.BRANCH_IF_NOT_ZERO:
-                    offset = memory[++ip];
                     if (Pop() != 0)
                     {
-                        ip += offset;
+                        ip = config.ProgramStart + memory[++ip];
+                        isJump = true;
                     }
                     break;
                 case OpCode.BRANCH_IF_ZERO:
-                    offset = memory[++ip];
                     if (Pop() == 0)
                     {
-                        ip += offset;
+                        ip = config.ProgramStart + memory[++ip];
+                        isJump = true;
                     }
                     break;
+
+                case OpCode.CALL:
+                    int dest = memory[ip + 1];
+                    callStack.Push(ip + 2);
+                    ip = config.ProgramStart + dest;
+                    isJump = true;
+                    break;
+                case OpCode.RET:
+                    ip = callStack.Pop();
+                    isJump = true;
+                    break;
+
                 case OpCode.PUSH_IMMEDIATE:
                     Push(memory[++ip]);
                     break;
@@ -285,7 +349,7 @@ public class ToyStackMachine
                     throw new InvalidOperationException("Invalid opcode: " + opcode);
             }
 
-            ip++;
+            if (!isJump) ip++;
         }
     }
 

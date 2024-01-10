@@ -30,7 +30,7 @@ namespace toystackmachine.core.ToyAssembly
             sb.AppendLine("ROM:");
             while (i < program.ROM.Length)
             {
-                var opcode = (OpCode)binary[i++];
+                var opcode = (OpCode)binary[i];
                 if (labels.Reverse.ContainsKey(i))
                 {
                     sb.Append(i.ToString().PadLeft(3, ' '));
@@ -39,22 +39,25 @@ namespace toystackmachine.core.ToyAssembly
                     sb.Append(":");
                     sb.AppendLine();
                 }
-
-                if (labels.Reverse.ContainsKey(i - 1))
-                {
-                    sb.Append((i - 1).ToString().PadLeft(3, ' '));
-                    sb.Append("\t");
-                    sb.Append(labels.Reverse[i - 1]);
-                    sb.Append(":");
-                    sb.AppendLine();
-                }
+                //else if (labels.Reverse.ContainsKey(i - 1))
+                //{
+                //    sb.Append((i - 1).ToString().PadLeft(3, ' '));
+                //    sb.Append("\t");
+                //    sb.Append(labels.Reverse[i - 1]);
+                //    sb.Append(":");
+                //    sb.AppendLine();
+                //}
                 sb.Append(i.ToString().PadLeft(3, ' '));
                 sb.Append("\t");
+                i++;
+
                 switch (opcode)
                 {
                     case OpCode.BRANCH:
                     case OpCode.BRANCH_IF_ZERO:
-                        sb.AppendFormat("{0} {1}{2}", OpCodeParser.ToString(opcode), labels.Reverse[i + 1 + binary[i++]], Environment.NewLine);
+                    case OpCode.BRANCH_IF_NOT_ZERO:
+                    case OpCode.CALL:
+                        sb.AppendFormat("{0} {1}{2}", OpCodeParser.ToString(opcode), labels.Reverse[binary[i++]], Environment.NewLine);
                         break;
                     case OpCode.PUSH_IMMEDIATE:
                     case OpCode.GET:

@@ -68,11 +68,19 @@ namespace toystackmachine.core.ToyAssembly
                 {
                     case OpCode.BRANCH:
                     case OpCode.BRANCH_IF_ZERO:
+                    case OpCode.BRANCH_IF_NOT_ZERO:
                         SkipWhiteSpace();
                         var label = currentToken.value;
                         Eat(TokenType.Identifier);
                         emitter.EmitJump(opcode, label);
                         break;
+                    case OpCode.CALL:
+                        SkipWhiteSpace();
+                        var function = currentToken.value;
+                        Eat(TokenType.Identifier);
+                        emitter.EmitCall(opcode, function);
+                        break;
+
                     case OpCode.PUSH_IMMEDIATE:
                     case OpCode.GET:
                     case OpCode.SET:

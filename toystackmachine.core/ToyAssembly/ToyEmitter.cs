@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection.Emit;
 
 namespace toystackmachine.core.ToyAssembly
 {
@@ -48,7 +49,7 @@ namespace toystackmachine.core.ToyAssembly
             {
                 foreach (var unpatchedJump in unpatchedLabels[label])
                 {
-                    program[unpatchedJump] = program.Count - 1 - unpatchedJump;
+                    program[unpatchedJump] = program.Count;
                 }
                 unpatchedLabels.Remove(label);
             }
@@ -56,6 +57,32 @@ namespace toystackmachine.core.ToyAssembly
         public void UpdateLabel(string label)
         {
             labels[label] = program.Count;
+        }
+
+        public void EmitCall(OpCode opcode, string function)
+        {
+            if (opcode != OpCode.CALL)
+            {
+                throw new InvalidOperationException($"Expect <{OpCode.CALL}>, got {opcode}");
+            }
+
+            if (!labels.ContainsKey(function))
+            {
+                program.Add((int)opcode);
+                if (unpatchedLabels.ContainsKey(function))
+                {
+                    unpatchedLabels[function].Add(program.Count);
+                }
+                else
+                {
+                    unpatchedLabels[function] = new List<int>() { program.Count };
+                }
+                program.Add(-1);
+                return;
+            }
+
+            program.Add((int)opcode);
+            program.Add(labels[function]);
         }
 
         public void EmitJump(OpCode opcode, string label)
@@ -82,7 +109,7 @@ namespace toystackmachine.core.ToyAssembly
             }
 
             program.Add((int)opcode);
-            program.Add(labels[label] - 1 - program.Count);
+            program.Add(labels[label]);
         }
 
         public void EmitHostFunctionCall(string hostFunctionName, params int[] args)

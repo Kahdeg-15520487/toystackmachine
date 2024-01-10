@@ -144,7 +144,7 @@ namespace toystackmachine.core.ToyLang
 
         public Bool(Token token)
         {
-            switch (token.type)
+            switch (token.Type)
             {
                 case TokenType.True:
                     Value = true;
@@ -161,16 +161,52 @@ namespace toystackmachine.core.ToyLang
 
     public class ProgramNode : AST
     {
+        public List<VariableDeclareStatement> GlobalVars { get; set; }
         public List<FunctionNode> Functions { get; set; }
 
         public ProgramNode()
         {
+            GlobalVars = new List<VariableDeclareStatement>();
             Functions = new List<FunctionNode>();
         }
 
         public void AddFunction(FunctionNode function)
         {
             Functions.Add(function);
+        }
+
+        internal void AddGlobalVariable(VariableDeclareStatement var)
+        {
+            GlobalVars.Add(var);
+        }
+    }
+
+    public class VariableDeclareStatement : AST
+    {
+        public Var Variable { get; set; }
+        public AST Initializer { get; set; }
+
+        public VariableDeclareStatement(Var variable, AST right)
+        {
+            Variable = variable;
+            Initializer = right;
+        }
+    }
+
+    public class FunctionCallExpression : AST
+    {
+        public Token FunctionName { get; set; }
+        public List<AST> Arguments { get; set; }
+
+        public FunctionCallExpression(Token functionName)
+        {
+            FunctionName = functionName;
+            Arguments = new List<AST>();
+        }
+
+        public void AddArgument(AST argument)
+        {
+            Arguments.Add(argument);
         }
     }
 }

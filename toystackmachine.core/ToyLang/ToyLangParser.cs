@@ -18,20 +18,20 @@ namespace toystackmachine.core.ToyLang
 
         public void Eat(params TokenType[] tokenTypes)
         {
-            if (tokenTypes.Contains(_currentToken.type))
+            if (tokenTypes.Contains(_currentToken.Type))
             {
                 _currentToken = _lexer.NextToken();
                 SkipWhiteSpace();
             }
             else
             {
-                throw new Exception($"Token type mismatch: expected {string.Join(", ", tokenTypes)}, got {_currentToken.type}");
+                throw new Exception($"Token type mismatch: expected {string.Join(", ", tokenTypes)}, got {_currentToken.Type}");
             }
         }
 
         private void SkipWhiteSpace()
         {
-            while ((_currentToken.type == TokenType.Whitespace || _currentToken.type == TokenType.NewLine || _currentToken.type == TokenType.Comment))
+            while ((_currentToken.Type == TokenType.Whitespace || _currentToken.Type == TokenType.NewLine || _currentToken.Type == TokenType.Comment))
             {
                 Eat(TokenType.Whitespace, TokenType.NewLine, TokenType.Comment);
             }
@@ -41,9 +41,21 @@ namespace toystackmachine.core.ToyLang
         {
             // Program : (Function)* EOFs
             var programNode = new ProgramNode();
-            while (_currentToken.type != TokenType.EOF)
+            while (_currentToken.Type != TokenType.EOF)
             {
-                programNode.AddFunction(Function() as FunctionNode);
+                switch (_currentToken.Type)
+                {
+                    case TokenType.Function:
+                        programNode.AddFunction(Function() as FunctionNode);
+                        break;
+                    case TokenType.Var:
+                        programNode.AddGlobalVariable(VariableDeclareStatement() as VariableDeclareStatement);
+                        break;
+                    case TokenType.Host:
+                        //todo declare expected host function
+                        //programNode.AddHostFunction(HostFunction() as HostFunctionNode);
+                        break;
+                }
             }
             Eat(TokenType.EOF);
             return programNode;
@@ -57,10 +69,10 @@ namespace toystackmachine.core.ToyLang
             Eat(TokenType.Identifier);
             Eat(TokenType.OpenParenthesis);
             var parameters = new List<Var>();
-            while (_currentToken.type != TokenType.CloseParenthesis)
+            while (_currentToken.Type != TokenType.CloseParenthesis)
             {
                 parameters.Add(Variable() as Var);
-                if (_currentToken.type == TokenType.Comma)
+                if (_currentToken.Type == TokenType.Comma)
                 {
                     Eat(TokenType.Comma);
                 }
@@ -68,7 +80,7 @@ namespace toystackmachine.core.ToyLang
             Eat(TokenType.CloseParenthesis);
             Eat(TokenType.OpenBrace);
             var nodes = new List<AST>();
-            while (_currentToken.type != TokenType.CloseBrace)
+            while (_currentToken.Type != TokenType.CloseBrace)
             {
                 nodes.Add(Statement());
             }
@@ -80,27 +92,31 @@ namespace toystackmachine.core.ToyLang
         public AST Statement()
         {
             // Statement : AssignmentStatement | ReturnStatement | WhileStatement | ForStatement | Empty
-            if (_currentToken.type == TokenType.Identifier)
+            if (_currentToken.Type == TokenType.Identifier)
             {
                 return AssignmentStatement();
             }
-            else if (_currentToken.type == TokenType.Return)
+            else if (_currentToken.Type == TokenType.Return)
             {
                 return ReturnStatement();
             }
-            else if (_currentToken.type == TokenType.While)
+            else if (_currentToken.Type == TokenType.While)
             {
                 return WhileStatement();
             }
-            else if (_currentToken.type == TokenType.For)
+            else if (_currentToken.Type == TokenType.For)
             {
                 return ForStatement();
             }
-            else if (_currentToken.type == TokenType.Print)
+            else if (_currentToken.Type == TokenType.Print)
             {
                 return PrintStatement();
             }
-            else if (_currentToken.type == TokenType.OpenBrace)
+            else if (_currentToken.Type == TokenType.Var)
+            {
+                return VariableDeclareStatement();
+            }
+            else if (_currentToken.Type == TokenType.OpenBrace)
             {
                 return CompoundStatement();
             }
@@ -115,7 +131,7 @@ namespace toystackmachine.core.ToyLang
             // CompoundStatement : OPEN_BRACE (Statement)* CLOSE_BRACE
             Eat(TokenType.OpenBrace);
             var nodes = new List<AST>();
-            while (_currentToken.type != TokenType.CloseBrace)
+            while (_currentToken.Type != TokenType.CloseBrace)
             {
                 nodes.Add(Statement());
             }
@@ -188,6 +204,21 @@ namespace toystackmachine.core.ToyLang
             return new Assign(left, token, right);
         }
 
+        public AST VariableDeclareStatement()
+        {
+            // VariableDeclareStatement : VAR VARIABLE (ASSIGN Expr)? SEMICOLON
+            Eat(TokenType.Var);
+            var variable = Variable() as Var;
+            AST initializer = null;
+            if (_currentToken.Type == TokenType.Assign)
+            {
+                Eat(TokenType.Assign);
+                initializer = Expr();
+            }
+            Eat(TokenType.Semicolon);
+            return new VariableDeclareStatement(variable, initializer);
+        }
+
         public AST Variable()
         {
             // Variable : ID
@@ -201,6 +232,26 @@ namespace toystackmachine.core.ToyLang
             // An empty production
             return new NoOp();
         }
+
+        public AST FunctionCall()
+        {
+            // FunctionCall : Identifier LPAREN (Expr (COMMA Expr)*)? RPAREN
+            var token = _currentToken;
+            Eat(TokenType.Identifier);
+            var function = new FunctionCallExpression(token);
+            Eat(TokenType.OpenParenthesis);
+            while (_currentToken.Type != TokenType.CloseParenthesis)
+            {
+                function.AddArgument(Expr());
+                if (_currentToken.Type == TokenType.Comma)
+                {
+                    Eat(TokenType.Comma);
+                }
+            }
+            Eat(TokenType.CloseParenthesis);
+            return function;
+        }
+
         public AST Expr()
         {
             // Expr : Comparison
@@ -212,22 +263,22 @@ namespace toystackmachine.core.ToyLang
             // Comparison : Additive ((EQUAL | NOT_EQUAL | LESS_THAN | GREATER_THAN) Additive)*
             var node = Additive();
 
-            while (_currentToken.type == TokenType.Equal || _currentToken.type == TokenType.NotEqual || _currentToken.type == TokenType.LessThan || _currentToken.type == TokenType.GreaterThan)
+            while (_currentToken.Type == TokenType.Equal || _currentToken.Type == TokenType.NotEqual || _currentToken.Type == TokenType.LessThan || _currentToken.Type == TokenType.GreaterThan)
             {
                 var token = _currentToken;
-                if (token.type == TokenType.Equal)
+                if (token.Type == TokenType.Equal)
                 {
                     Eat(TokenType.Equal);
                 }
-                else if (token.type == TokenType.NotEqual)
+                else if (token.Type == TokenType.NotEqual)
                 {
                     Eat(TokenType.NotEqual);
                 }
-                else if (token.type == TokenType.LessThan)
+                else if (token.Type == TokenType.LessThan)
                 {
                     Eat(TokenType.LessThan);
                 }
-                else if (token.type == TokenType.GreaterThan)
+                else if (token.Type == TokenType.GreaterThan)
                 {
                     Eat(TokenType.GreaterThan);
                 }
@@ -242,14 +293,14 @@ namespace toystackmachine.core.ToyLang
             // Expr : Term ((PLUS | MINUS) Term)*
             var node = Term();
 
-            while (_currentToken.type == TokenType.Plus || _currentToken.type == TokenType.Minus)
+            while (_currentToken.Type == TokenType.Plus || _currentToken.Type == TokenType.Minus)
             {
                 var token = _currentToken;
-                if (token.type == TokenType.Plus)
+                if (token.Type == TokenType.Plus)
                 {
                     Eat(TokenType.Plus);
                 }
-                else if (token.type == TokenType.Minus)
+                else if (token.Type == TokenType.Minus)
                 {
                     Eat(TokenType.Minus);
                 }
@@ -264,14 +315,14 @@ namespace toystackmachine.core.ToyLang
             // Term : Factor ((MULTIPLY | DIVIDE) Factor)*
             var node = Factor();
 
-            while (_currentToken.type == TokenType.Multiply || _currentToken.type == TokenType.Divide)
+            while (_currentToken.Type == TokenType.Multiply || _currentToken.Type == TokenType.Divide)
             {
                 var token = _currentToken;
-                if (token.type == TokenType.Multiply)
+                if (token.Type == TokenType.Multiply)
                 {
                     Eat(TokenType.Multiply);
                 }
-                else if (token.type == TokenType.Divide)
+                else if (token.Type == TokenType.Divide)
                 {
                     Eat(TokenType.Divide);
                 }
@@ -288,44 +339,56 @@ namespace toystackmachine.core.ToyLang
             //        | INTEGER
             //        | LPAREN Expr RPAREN
             //        | Variable
+            //        | FunctionCall
             //        | TRUE
             //        | FALSE
             var token = _currentToken;
-            if (token.type == TokenType.Plus)
+            if (token.Type == TokenType.Plus)
             {
                 Eat(TokenType.Plus);
                 return new UnaryOp(token, Factor());
             }
-            else if (token.type == TokenType.Minus)
+            else if (token.Type == TokenType.Minus)
             {
                 Eat(TokenType.Minus);
                 return new UnaryOp(token, Factor());
             }
-            else if (token.type == TokenType.Number)
+            else if (token.Type == TokenType.Number)
             {
                 Eat(TokenType.Number);
                 return new Num(token);
             }
-            else if (token.type == TokenType.OpenParenthesis)
+            else if (token.Type == TokenType.OpenParenthesis)
             {
                 Eat(TokenType.OpenParenthesis);
                 var node = Expr();
                 Eat(TokenType.CloseParenthesis);
                 return node;
             }
-            else if (token.type == TokenType.True)
+            else if (token.Type == TokenType.True)
             {
                 Eat(TokenType.True);
                 return new Bool(token);
             }
-            else if (token.type == TokenType.False)
+            else if (token.Type == TokenType.False)
             {
                 Eat(TokenType.False);
                 return new Bool(token);
             }
+            else if (token.Type == TokenType.Identifier)
+            {
+                if (_currentToken.Type == TokenType.OpenParenthesis)
+                {
+                    return FunctionCall();
+                }
+                else
+                {
+                    return Variable();
+                }
+            }
             else
             {
-                return Variable();
+                return Empty();
             }
         }
     }
