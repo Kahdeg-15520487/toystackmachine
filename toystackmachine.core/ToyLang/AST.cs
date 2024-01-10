@@ -7,7 +7,7 @@ namespace toystackmachine.core.ToyLang
     {
     }
 
-    public class Compound : AST
+    public class CompoundStatement : AST
     {
         public List<AST> Children { get; set; }
     }
@@ -209,4 +209,21 @@ namespace toystackmachine.core.ToyLang
             Arguments.Add(argument);
         }
     }
+
+    public class ReadExpression : AST { }
+
+    public class IfStatement : AST
+    {
+        public AST Condition { get; set; }
+        public AST TrueStatement { get; set; }
+        public AST FalseStatement { get; set; }
+
+        public IfStatement(AST condition, AST trueStatement, AST falseStatement)
+        {
+            Condition = condition;
+            TrueStatement = trueStatement;
+            FalseStatement = falseStatement;
+        }
+    }
+
 }

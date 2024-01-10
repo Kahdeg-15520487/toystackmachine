@@ -108,6 +108,10 @@ namespace toystackmachine.core.ToyLang
             {
                 return ForStatement();
             }
+            else if (_currentToken.Type == TokenType.If)
+            {
+                return IfStatement();
+            }
             else if (_currentToken.Type == TokenType.Print)
             {
                 return PrintStatement();
@@ -136,9 +140,26 @@ namespace toystackmachine.core.ToyLang
                 nodes.Add(Statement());
             }
             Eat(TokenType.CloseBrace);
-            var root = new Compound();
+            var root = new CompoundStatement();
             root.Children = nodes;
             return root;
+        }
+
+        public AST IfStatement()
+        {
+            // IfStatement : IF OPEN_PAREN Expr CLOSE_PAREN Statement (ELSE Statement)?
+            Eat(TokenType.If);
+            Eat(TokenType.OpenParenthesis);
+            var condition = Expr();
+            Eat(TokenType.CloseParenthesis);
+            var trueStatement = Statement();
+            AST falseStatement = null;
+            if (_currentToken.Type == TokenType.Else)
+            {
+                Eat(TokenType.Else);
+                falseStatement = Statement();
+            }
+            return new IfStatement(condition, trueStatement, falseStatement);
         }
 
         public AST PrintStatement()
@@ -233,12 +254,10 @@ namespace toystackmachine.core.ToyLang
             return new NoOp();
         }
 
-        public AST FunctionCall()
+        public AST FunctionCall(Token functionName)
         {
             // FunctionCall : Identifier LPAREN (Expr (COMMA Expr)*)? RPAREN
-            var token = _currentToken;
-            Eat(TokenType.Identifier);
-            var function = new FunctionCallExpression(token);
+            var function = new FunctionCallExpression(functionName);
             Eat(TokenType.OpenParenthesis);
             while (_currentToken.Type != TokenType.CloseParenthesis)
             {
@@ -340,6 +359,7 @@ namespace toystackmachine.core.ToyLang
             //        | LPAREN Expr RPAREN
             //        | Variable
             //        | FunctionCall
+            //        | READ
             //        | TRUE
             //        | FALSE
             var token = _currentToken;
@@ -375,15 +395,21 @@ namespace toystackmachine.core.ToyLang
                 Eat(TokenType.False);
                 return new Bool(token);
             }
+            else if (token.Type == TokenType.Read)
+            {
+                Eat(TokenType.Read);
+                return new ReadExpression();
+            }
             else if (token.Type == TokenType.Identifier)
             {
+                var id = Variable() as Var;
                 if (_currentToken.Type == TokenType.OpenParenthesis)
                 {
-                    return FunctionCall();
+                    return FunctionCall(id.Token);
                 }
                 else
                 {
-                    return Variable();
+                    return id;
                 }
             }
             else

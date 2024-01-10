@@ -1,4 +1,6 @@
-﻿using System;
+﻿using BidirectionalMap;
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,6 +16,7 @@ public class ToyStackMachine
     private Stack<int> callStack;
     private Dictionary<string, int> hostFunctionIndex;
     private List<Func<int[], int[], int>> hostFunctions;
+    private ToyProgram loadedProgram;
 
     public bool isHalting { get; private set; }
 
@@ -42,6 +45,7 @@ public class ToyStackMachine
             throw new KeyNotFoundException($"Runtime missing dependency:{Environment.NewLine}{string.Join($",{Environment.NewLine}\t", program.Dependency.Except(availableDepedency))}{Environment.NewLine}");
         }
 
+        this.loadedProgram = program;
         Array.Copy(program.ROM, 0, memory, config.ProgramStart, program.ROM.Length);
         ip = config.ProgramStart;
         Console.WriteLine("loaded:");
@@ -164,8 +168,14 @@ public class ToyStackMachine
         Array.Copy(array, 0, memory, ptr + 1, array.Length);
     }
 
-    public void Run()
+    public void Run(string functionName = null)
     {
+        if (!string.IsNullOrEmpty(functionName))
+        {
+            ip = config.ProgramStart + this.loadedProgram.Labels.Forward[functionName];
+            callStack.Push(config.ProgramStart + this.loadedProgram.ROM.Length-1);
+        }
+
         if (isHalting)
         {
             throw new InvalidOperationException("Machine is halting");
@@ -174,14 +184,13 @@ public class ToyStackMachine
         while (ip < memory.Length)
         {
             OpCode opcode = (OpCode)memory[ip];
-            //Console.WriteLine("=====");
-            //Console.WriteLine($"ip: {ip - config.ProgramStart}");
-            //Console.WriteLine($"sp: {sp}");
-            //Console.WriteLine($"opcode: {opcode}");
-            //Console.WriteLine($"callstack: {string.Join(", ", callStack.Select(c => c - config.ProgramStart))}");
-            //Console.WriteLine($"stack: {string.Join(", ", GetActiveStack())}");
-            //Console.WriteLine("=====");
-            //Console.ReadLine();
+            Console.WriteLine("=====");
+            Console.WriteLine($"ip: {ip - config.ProgramStart}");
+            Console.WriteLine($"sp: {sp}");
+            Console.WriteLine($"opcode: {opcode}");
+            Console.WriteLine($"callstack: {string.Join(", ", callStack.Select(c => c - config.ProgramStart))}");
+            Console.WriteLine($"stack: {string.Join(", ", GetActiveStack())}");
+            Console.WriteLine("=====");
             int a, b;
             bool isJump = false;
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 
@@ -18,7 +19,7 @@ namespace toystackmachine.core.ToyLang
         public Scope(ToyStackMachineMemoryConfiguration memoryConfiguration, Scope parent = null)
         {
             this.memoryConfiguration = memoryConfiguration;
-            this.currentMemoryPointer = memoryConfiguration.StackMax + 1;
+            this.currentMemoryPointer = memoryConfiguration.StackStart + 1;
             if (parent != null)
             {
                 this.currentMemoryPointer += parent.currentMemoryPointer;
@@ -74,7 +75,7 @@ namespace toystackmachine.core.ToyLang
         private Scope currentScope;
         private bool isInFunction;
 
-        public List<string> Compile(AST node, ToyStackMachineMemoryConfiguration memoryConfiguration)
+        public string Compile(AST node, ToyStackMachineMemoryConfiguration memoryConfiguration)
         {
             _instructions.Clear();
             _functions.Clear();
@@ -84,7 +85,7 @@ namespace toystackmachine.core.ToyLang
             this.isInFunction = false;
             GenerateHeader();
             Visit(node);
-            return _instructions;
+            return string.Join(Environment.NewLine, _instructions);
         }
 
         private void GenerateHeader()
@@ -129,15 +130,44 @@ namespace toystackmachine.core.ToyLang
                     //pop parameters value from stack into local variables
                     for (int i = functionNode.Parameters.Count - 1; i >= 0; i--)
                     {
-                        _instructions.Add($"pop {localScope[functionNode.Parameters[i].Token.Value]}");
+                        _instructions.Add($"set {localScope[functionNode.Parameters[i].Token.Value]}");
                     }
                     //declare function body
                     foreach (var stmt in functionNode.Body)
                     {
                         Visit(stmt);
                     }
+                    _instructions.Add("ret");
                     isInFunction = false;
                     currentScope = global;
+                    break;
+                case VariableDeclareStatement variableDeclareStatement:
+                    currentScope.Define(variableDeclareStatement.Variable.Token.Value);
+                    if (variableDeclareStatement.Initializer != null)
+                    {
+                        Visit(variableDeclareStatement.Initializer);
+                        _instructions.Add($"set {currentScope[variableDeclareStatement.Variable.Token.Value]}");
+                    }
+                    break;
+                case IfStatement ifStatement:
+                    {
+                        Visit(ifStatement.Condition);
+                        string elseLabel = GenerateRandomLabel();
+                        string endLabel = GenerateRandomLabel();
+                        _instructions.Add($"brzero {elseLabel}");
+                        Visit(ifStatement.TrueStatement);
+                        _instructions.Add($"br {endLabel}");
+                        _instructions.Add($"{elseLabel}:");
+                        if (ifStatement.FalseStatement != null)
+                        {
+                            Visit(ifStatement.FalseStatement);
+                        }
+                        else
+                        {
+                            _instructions.Add($"nop");
+                        }
+                        _instructions.Add($"{endLabel}:");
+                    }
                     break;
                 case Assign assign:
                     Visit(assign.Right);
@@ -152,6 +182,13 @@ namespace toystackmachine.core.ToyLang
                 case Bool boolean:
                     _instructions.Add($"push {(boolean.Value ? 1 : 0)}");
                     break;
+                case FunctionCallExpression functionCallExpression:
+                    foreach (var argument in functionCallExpression.Arguments)
+                    {
+                        Visit(argument);
+                    }
+                    _instructions.Add($"call {functionCallExpression.FunctionName.Value}");
+                    break;
                 //todo constant string
                 case BinOp binOp:
                     Visit(binOp.Left);
@@ -163,14 +200,16 @@ namespace toystackmachine.core.ToyLang
                     _instructions.Add(OpCodeParser.ToString(GetOpCode(unaryOp.Token.Type)));
                     break;
                 case WhileStatement whileNode:
-                    string startLabel = Guid.NewGuid().ToString();
-                    string endLabel = Guid.NewGuid().ToString();
-                    _instructions.Add($"{startLabel}:");
-                    Visit(whileNode.Condition);
-                    _instructions.Add($"brzero {endLabel}");
-                    Visit(whileNode.Statement);
-                    _instructions.Add($"br {startLabel}:");
-                    _instructions.Add($"{endLabel}:");
+                    {
+                        string startLabel = GenerateRandomLabel();
+                        string endLabel = GenerateRandomLabel();
+                        _instructions.Add($"{startLabel}:");
+                        Visit(whileNode.Condition);
+                        _instructions.Add($"brzero {endLabel}");
+                        Visit(whileNode.Statement);
+                        _instructions.Add($"br {startLabel}:");
+                        _instructions.Add($"{endLabel}:");
+                    }
                     break;
                 case ReturnStatement returnStatement:
                     Visit(returnStatement.Expr);
@@ -180,11 +219,25 @@ namespace toystackmachine.core.ToyLang
                     Visit(printStatement.Expr);
                     _instructions.Add("print");
                     break;
+                case CompoundStatement compoundStatement:
+                    foreach (var statement in compoundStatement.Children)
+                    {
+                        Visit(statement);
+                    }
+                    break;
+                case ReadExpression _:
+                    _instructions.Add("callhost hostinput");
+                    break;
                 case NoOp _:
                     break;
                 default:
                     throw new Exception($"Unexpected node type {node.GetType()}");
             }
+        }
+
+        private string GenerateRandomLabel()
+        {
+            return "l" + Guid.NewGuid().ToString("N").ToUpper();
         }
 
         private OpCode GetOpCode(TokenType tokenType)
