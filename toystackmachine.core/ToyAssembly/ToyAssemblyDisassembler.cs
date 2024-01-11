@@ -31,24 +31,15 @@ namespace toystackmachine.core.ToyAssembly
             while (i < program.ROM.Length)
             {
                 var opcode = (OpCode)binary[i];
+                sb.Append(i.ToString().PadLeft(3, ' '));
+                sb.Append("\t");
                 if (labels.Reverse.ContainsKey(i))
                 {
-                    sb.Append(i.ToString().PadLeft(3, ' '));
-                    sb.Append("\t");
                     sb.Append(labels.Reverse[i]);
                     sb.Append(":");
                     sb.AppendLine();
+                    sb.Append("\t");
                 }
-                //else if (labels.Reverse.ContainsKey(i - 1))
-                //{
-                //    sb.Append((i - 1).ToString().PadLeft(3, ' '));
-                //    sb.Append("\t");
-                //    sb.Append(labels.Reverse[i - 1]);
-                //    sb.Append(":");
-                //    sb.AppendLine();
-                //}
-                sb.Append(i.ToString().PadLeft(3, ' '));
-                sb.Append("\t");
                 i++;
 
                 switch (opcode)

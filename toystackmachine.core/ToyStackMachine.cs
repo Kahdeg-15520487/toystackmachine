@@ -168,12 +168,12 @@ public class ToyStackMachine
         Array.Copy(array, 0, memory, ptr + 1, array.Length);
     }
 
-    public void Run(string functionName = null)
+    public void Run(string functionName = null, bool debug = false)
     {
         if (!string.IsNullOrEmpty(functionName))
         {
             ip = config.ProgramStart + this.loadedProgram.Labels.Forward[functionName];
-            callStack.Push(config.ProgramStart + this.loadedProgram.ROM.Length-1);
+            callStack.Push(config.ProgramStart + this.loadedProgram.ROM.Length - 1);
         }
 
         if (isHalting)
@@ -184,14 +184,17 @@ public class ToyStackMachine
         while (ip < memory.Length)
         {
             OpCode opcode = (OpCode)memory[ip];
-            Console.WriteLine("=====");
-            Console.WriteLine($"ip: {ip - config.ProgramStart}");
-            Console.WriteLine($"sp: {sp}");
-            Console.WriteLine($"opcode: {opcode}");
-            Console.WriteLine($"callstack: {string.Join(", ", callStack.Select(c => c - config.ProgramStart))}");
-            Console.WriteLine($"stack: {string.Join(", ", GetActiveStack())}");
-            Console.WriteLine("=====");
-            int a, b;
+            if (debug)
+            {
+                Console.WriteLine("=====");
+                Console.WriteLine($"ip: {ip - config.ProgramStart}");
+                Console.WriteLine($"sp: {sp}");
+                Console.WriteLine($"opcode: {opcode}");
+                Console.WriteLine($"callstack: {string.Join(", ", callStack.Select(c => c - config.ProgramStart))}");
+                Console.WriteLine($"stack: {string.Join(", ", GetActiveStack())}");
+                Console.WriteLine("=====");
+            }
+            int a, b, dest;
             bool isJump = false;
 
             switch (opcode)
@@ -265,26 +268,29 @@ public class ToyStackMachine
 
 
                 case OpCode.BRANCH:
-                    ip = config.ProgramStart + memory[++ip];
+                    dest = memory[++ip];
+                    ip = config.ProgramStart + dest;
                     isJump = true;
                     break;
                 case OpCode.BRANCH_IF_NOT_ZERO:
+                    dest = memory[++ip];
                     if (Pop() != 0)
                     {
-                        ip = config.ProgramStart + memory[++ip];
+                        ip = config.ProgramStart + dest;
                         isJump = true;
                     }
                     break;
                 case OpCode.BRANCH_IF_ZERO:
+                    dest = memory[++ip];
                     if (Pop() == 0)
                     {
-                        ip = config.ProgramStart + memory[++ip];
+                        ip = config.ProgramStart + dest;
                         isJump = true;
                     }
                     break;
 
                 case OpCode.CALL:
-                    int dest = memory[ip + 1];
+                    dest = memory[ip + 1];
                     callStack.Push(ip + 2);
                     ip = config.ProgramStart + dest;
                     isJump = true;

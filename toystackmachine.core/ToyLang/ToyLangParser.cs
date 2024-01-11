@@ -175,14 +175,13 @@ namespace toystackmachine.core.ToyLang
 
         public AST ForStatement()
         {
-            // ForStatement : FOR OPEN_PAREN AssignmentStatement SEMICOLON Expr SEMICOLON AssignmentStatement CLOSE_PAREN Statement
+            // ForStatement : FOR OPEN_PAREN VariableDeclareStatement Expr SEMICOLON AssignmentStatement CLOSE_PAREN Statement
             Eat(TokenType.For);
             Eat(TokenType.OpenParenthesis);
-            var initialization = AssignmentStatement();
-            Eat(TokenType.Semicolon);
+            var initialization = VariableDeclareStatement();
             var condition = Expr();
             Eat(TokenType.Semicolon);
-            var increment = AssignmentStatement();
+            var increment = AssignmentStatement(true);
             Eat(TokenType.CloseParenthesis);
             var statement = Statement();
             return new ForStatement(initialization, condition, increment, statement);
@@ -214,14 +213,14 @@ namespace toystackmachine.core.ToyLang
             return new ReturnStatement(expr);
         }
 
-        public AST AssignmentStatement()
+        public AST AssignmentStatement(bool isExpr = false)
         {
             // AssignmentStatement : VARIABLE ASSIGN Expr SEMICOLON
             var left = Variable() as Var;
             var token = _currentToken;
             Eat(TokenType.Assign);
             var right = Expr();
-            Eat(TokenType.Semicolon);
+            if (!isExpr) Eat(TokenType.Semicolon);
             return new Assign(left, token, right);
         }
 

@@ -62,6 +62,30 @@
                 case "div":
                     opcode = OpCode.DIV;
                     return true;
+                case "mod":
+                    opcode = OpCode.MOD;
+                    return true;
+                case "lt":
+                    opcode = OpCode.LT;
+                    return true;
+                case "gt":
+                    opcode = OpCode.GT;
+                    return true;
+                case "eq":
+                    opcode = OpCode.EQ;
+                    return true;
+                case "ne":
+                    opcode = OpCode.NE;
+                    return true;
+                case "le":
+                    opcode = OpCode.LE;
+                    return true;
+                case "ge":
+                    opcode = OpCode.GE;
+                    return true;
+                case "not":
+                    opcode = OpCode.NOT;
+                    return true;
                 case "cmp":
                     opcode = OpCode.CMP;
                     return true;
@@ -133,6 +157,22 @@
                     return "mul";
                 case OpCode.DIV:
                     return "div";
+                case OpCode.MOD:
+                    return "mod";
+                case OpCode.LT:
+                    return "lt";
+                case OpCode.GT:
+                    return "gt";
+                case OpCode.EQ:
+                    return "eq";
+                case OpCode.NE:
+                    return "ne";
+                case OpCode.LE:
+                    return "le";
+                case OpCode.GE:
+                    return "ge";
+                case OpCode.NOT:
+                    return "not";
                 case OpCode.CMP:
                     return "cmp";
                 case OpCode.BRANCH:

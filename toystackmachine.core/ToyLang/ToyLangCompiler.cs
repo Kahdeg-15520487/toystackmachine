@@ -10,7 +10,6 @@ namespace toystackmachine.core.ToyLang
 {
     public class Scope
     {
-
         private ToyStackMachineMemoryConfiguration memoryConfiguration;
         public Scope Parent { get; private set; }
         private Dictionary<string, int> variables { get; } = new Dictionary<string, int>();
@@ -74,11 +73,13 @@ namespace toystackmachine.core.ToyLang
         private Scope global;
         private Scope currentScope;
         private bool isInFunction;
+        private Random randomLabelCounter;
 
         public string Compile(AST node, ToyStackMachineMemoryConfiguration memoryConfiguration)
         {
             _instructions.Clear();
             _functions.Clear();
+            randomLabelCounter = new Random();
             this.memoryConfiguration = memoryConfiguration;
             this.global = new Scope(memoryConfiguration: memoryConfiguration);
             currentScope = global;
@@ -152,8 +153,8 @@ namespace toystackmachine.core.ToyLang
                 case IfStatement ifStatement:
                     {
                         Visit(ifStatement.Condition);
-                        string elseLabel = GenerateRandomLabel();
-                        string endLabel = GenerateRandomLabel();
+                        string elseLabel = GenerateRandomLabel("else");
+                        string endLabel = GenerateRandomLabel("endif");
                         _instructions.Add($"brzero {elseLabel}");
                         Visit(ifStatement.TrueStatement);
                         _instructions.Add($"br {endLabel}");
@@ -201,13 +202,27 @@ namespace toystackmachine.core.ToyLang
                     break;
                 case WhileStatement whileNode:
                     {
-                        string startLabel = GenerateRandomLabel();
-                        string endLabel = GenerateRandomLabel();
+                        string startLabel = GenerateRandomLabel("whilestart");
+                        string endLabel = GenerateRandomLabel("whileend");
                         _instructions.Add($"{startLabel}:");
                         Visit(whileNode.Condition);
                         _instructions.Add($"brzero {endLabel}");
                         Visit(whileNode.Statement);
-                        _instructions.Add($"br {startLabel}:");
+                        _instructions.Add($"br {startLabel}");
+                        _instructions.Add($"{endLabel}:");
+                    }
+                    break;
+                case ForStatement forStatement:
+                    {
+                        string startLabel = GenerateRandomLabel("forstart");
+                        string endLabel = GenerateRandomLabel("forend");
+                        Visit(forStatement.Initialization);
+                        _instructions.Add($"{startLabel}:");
+                        Visit(forStatement.Condition);
+                        _instructions.Add($"brzero {endLabel}");
+                        Visit(forStatement.Statement);
+                        Visit(forStatement.Increment);
+                        _instructions.Add($"br {startLabel}");
                         _instructions.Add($"{endLabel}:");
                     }
                     break;
@@ -235,9 +250,11 @@ namespace toystackmachine.core.ToyLang
             }
         }
 
-        private string GenerateRandomLabel()
+        private string GenerateRandomLabel(string prefix = "L")
         {
-            return "l" + Guid.NewGuid().ToString("N").ToUpper();
+            byte[] bytes = BitConverter.GetBytes(randomLabelCounter.Next());
+            string base64Label = Convert.ToBase64String(bytes);
+            return prefix + "_" + base64Label.Substring(0, 6);
         }
 
         private OpCode GetOpCode(TokenType tokenType)

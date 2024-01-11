@@ -7,7 +7,13 @@ namespace toystackmachine.cli
     {
         public static void RunTest()
         {
-            testToyLangCompilerRecursive();
+            testtoyLangCompilerFor();
+
+            //testToyLangCompilerWhile();
+
+            //testToyLangCompilerIf();
+
+            //testToyLangCompilerRecursive();
 
             //testToyLangCompiler3();
 
@@ -30,6 +36,57 @@ namespace toystackmachine.cli
             //testToyStackMachine();
         }
 
+        static void testtoyLangCompilerFor()
+        {
+            string input = @"
+function main(){
+    var n = read;
+    for(var i=0;i<n;i=i+1){
+        print(i+1);
+    }
+}
+";
+            string asm = Compile(input);
+            ToyProgram prog = Assemble(asm);
+            Run(prog);
+        }
+
+        static void testToyLangCompilerWhile()
+        {
+            string input = @"
+function main(){
+    var n = read;
+    while(n>0){
+        print(n);
+        n = n - 1;
+    }
+}
+";
+            string asm = Compile(input);
+            ToyProgram prog = Assemble(asm);
+            Run(prog);
+        }
+
+        static void testToyLangCompilerIf()
+        {
+            string input = @"
+function main(){
+    var a = read;
+    var b = read;
+    print(min(a,b));
+}
+function min(a,b){
+    if(a<b){
+        return a;
+    }
+    return b;
+}
+";
+            string asm = Compile(input);
+            ToyProgram prog = Assemble(asm);
+            Run(prog);
+        }
+
         static void testToyLangCompilerRecursive()
         {
             string input = @"
@@ -44,6 +101,22 @@ function factorial(n){
     return n * factorial(n-1);
 }
 ";
+            string asm = Compile(input);
+            ToyProgram prog = Assemble(asm);
+            Run(prog);
+        }
+
+        private static ToyProgram Assemble(string asm)
+        {
+            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(asm));
+            var prog = assembler.Assemble();
+
+            Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
+            return prog;
+        }
+
+        private static string Compile(string input)
+        {
             ToyLangCompiler compiler = new ToyLangCompiler();
             ToyLangParser parser = new ToyLangParser(new ToyLangLexer(input));
             var ast = parser.Program();
@@ -51,12 +124,11 @@ function factorial(n){
             Console.WriteLine("Compiled program:");
             Console.WriteLine(string.Join(Environment.NewLine, asm));
             Console.WriteLine("=====");
+            return asm;
+        }
 
-            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(asm));
-            var prog = assembler.Assemble();
-
-            Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
-
+        private static void Run(ToyProgram prog, string entryFunction = "main")
+        {
             ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
 
             vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
@@ -68,7 +140,7 @@ function factorial(n){
                 return 0;
             });
             vm.LoadProgram(prog);
-            vm.Run("main");
+            vm.Run(entryFunction);
         }
 
         static void testToyLangCompiler3()
@@ -426,7 +498,7 @@ halt
             e.Emit(OpCode.TRIP);                    // trip
             e.Emit(OpCode.SET, 700);                // pop and store at 700
             e.Emit(OpCode.PRINT);                   // print
-            e.Emit(OpCode.BRANCH_IF_ZERO, 2);       // brzero loopend
+            e.EmitJump(OpCode.BRANCH_IF_ZERO, "loopend");       // brzero loopend
             e.EmitJump(OpCode.BRANCH, "loopstart"); // br loopstart
             e.EmitLabel("loopend");
             e.Emit(OpCode.HALT);
