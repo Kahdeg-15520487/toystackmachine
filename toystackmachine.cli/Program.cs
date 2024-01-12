@@ -3,6 +3,7 @@ using System.Diagnostics.Metrics;
 using System.IO;
 
 using CommandLine;
+
 using toystackmachine.cli;
 using toystackmachine.core.ToyAssembly;
 
@@ -12,11 +13,10 @@ namespace ToyAssemblerCLI
     {
         static void Main(string[] args)
         {
-            Test.RunTest();
-
-            //Parser.Default.ParseArguments<RunOptions, CompileOptions>(args)
-            //.WithParsed<RunOptions>(opts => Run(opts))
-            //.WithParsed<CompileOptions>(opts => Compile(opts));
+            Parser.Default.ParseArguments<RunOptions, CompileOptions, TestOptions>(args)
+            .WithParsed<RunOptions>(opts => Run(opts))
+            .WithParsed<CompileOptions>(opts => Compile(opts))
+            .WithParsed<TestOptions>(opts => RunTest(opts));
         }
 
         static void Run(RunOptions opts)
@@ -56,6 +56,11 @@ namespace ToyAssemblerCLI
                 ToyProgram.Serialize(program, fs);
             }
         }
+
+        static void RunTest(TestOptions opts)
+        {
+            Test.RunTest();
+        }
     }
 
     [Verb("run", HelpText = "Run a ToyAssembler binary.")]
@@ -73,5 +78,10 @@ namespace ToyAssemblerCLI
 
         [Value(1, MetaName = "output", HelpText = "Output file for the compiled binary.", Required = true)]
         public string OutputFile { get; set; }
+    }
+
+    [Verb("test", HelpText = "Run a test.")]
+    public class TestOptions
+    {
     }
 }

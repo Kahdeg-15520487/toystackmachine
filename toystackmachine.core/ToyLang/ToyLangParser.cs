@@ -397,6 +397,8 @@ namespace toystackmachine.core.ToyLang
             else if (token.Type == TokenType.Read)
             {
                 Eat(TokenType.Read);
+                Eat(TokenType.OpenParenthesis);
+                Eat(TokenType.CloseParenthesis);
                 return new ReadExpression();
             }
             else if (token.Type == TokenType.Identifier)

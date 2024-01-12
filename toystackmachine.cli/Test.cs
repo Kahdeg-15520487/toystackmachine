@@ -40,9 +40,9 @@ namespace toystackmachine.cli
         {
             string input = @"
 function main(){
-    var n = read;
-    for(var i=0;i<n;i=i+1){
-        print(i+1);
+    var n = read();
+    for(var i=n;i>0;i=i-1){
+        print(i);
     }
 }
 ";
@@ -55,7 +55,7 @@ function main(){
         {
             string input = @"
 function main(){
-    var n = read;
+    var n = read();
     while(n>0){
         print(n);
         n = n - 1;
@@ -71,8 +71,8 @@ function main(){
         {
             string input = @"
 function main(){
-    var a = read;
-    var b = read;
+    var a = read();
+    var b = read();
     print(min(a,b));
 }
 function min(a,b){
@@ -91,7 +91,7 @@ function min(a,b){
         {
             string input = @"
 function main(){
-    var n = read;
+    var n = read();
     print(factorial(n));
 }
 function factorial(n){
@@ -155,31 +155,9 @@ function add(a,b){
     return a+b;
 }
 ";
-            ToyLangCompiler compiler = new ToyLangCompiler();
-            ToyLangParser parser = new ToyLangParser(new ToyLangLexer(input));
-            var ast = parser.Program();
-            var asm = compiler.Compile(ast, new ToyStackMachineMemoryConfiguration());
-            Console.WriteLine("Compiled program:");
-            Console.WriteLine(string.Join(Environment.NewLine, asm));
-            Console.WriteLine("=====");
-
-            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(asm));
-            var prog = assembler.Assemble();
-
-            Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
-
-            ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
-
-            vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
-            vm.RegisterHostFuntion("hostinput", (m, a) => { Console.Write("> "); return int.TryParse(Console.ReadLine(), out int res) ? res : 0; });
-            vm.RegisterHostFuntion("hostprint", (m, a) =>
-            {
-                var s = new string(vm.GetArrayAt(a[0]).Select(i => (char)i).ToArray());
-                Console.Write(s);
-                return 0;
-            });
-            vm.LoadProgram(prog);
-            vm.Run("main");
+            string asm = Compile(input);
+            ToyProgram prog = Assemble(asm);
+            Run(prog);
         }
 
         static void testToyLangCompiler2()
@@ -191,31 +169,9 @@ function main(){
     print(a+n);
 }
 ";
-            ToyLangCompiler compiler = new ToyLangCompiler();
-            ToyLangParser parser = new ToyLangParser(new ToyLangLexer(input));
-            var ast = parser.Program();
-            var asm = compiler.Compile(ast, new ToyStackMachineMemoryConfiguration());
-            Console.WriteLine("Compiled program:");
-            Console.WriteLine(string.Join(Environment.NewLine, asm));
-            Console.WriteLine("=====");
-
-            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(asm));
-            var prog = assembler.Assemble();
-
-            Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
-
-            ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
-
-            vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
-            vm.RegisterHostFuntion("hostinput", (m, a) => { Console.Write("> "); return int.TryParse(Console.ReadLine(), out int res) ? res : 0; });
-            vm.RegisterHostFuntion("hostprint", (m, a) =>
-            {
-                var s = new string(vm.GetArrayAt(a[0]).Select(i => (char)i).ToArray());
-                Console.Write(s);
-                return 0;
-            });
-            vm.LoadProgram(prog);
-            vm.Run("main");
+            string asm = Compile(input);
+            ToyProgram prog = Assemble(asm);
+            Run(prog);
         }
 
         static void testToyAssemblerCallRet()
@@ -248,23 +204,8 @@ add1:
 	add
 	ret
 ";
-            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(input));
-            var prog = assembler.Assemble();
-
-            Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
-
-            ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
-
-            vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
-            vm.RegisterHostFuntion("hostinput", (m, a) => { Console.Write("> "); return int.TryParse(Console.ReadLine(), out int res) ? res : 0; });
-            vm.RegisterHostFuntion("hostprint", (m, a) =>
-            {
-                var s = new string(vm.GetArrayAt(a[0]).Select(i => (char)i).ToArray());
-                Console.Write(s);
-                return 0;
-            });
-            vm.LoadProgram(prog);
-            vm.Run();
+            ToyProgram prog = Assemble(input);
+            Run(prog);
         }
 
         static void testToyLangCompiler()
@@ -280,11 +221,8 @@ function countDown(n) {
     }
 }
 ";
-            ToyLangCompiler compiler = new ToyLangCompiler();
-            ToyLangParser parser = new ToyLangParser(new ToyLangLexer(input));
-            var ast = parser.Program();
-            var prog = compiler.Compile(ast, new ToyStackMachineMemoryConfiguration());
-            Console.WriteLine(string.Join(Environment.NewLine, prog));
+            string asm = Compile(input);
+            Console.WriteLine(asm);
         }
 
         static void testToyLangParser()
@@ -304,7 +242,6 @@ function countDown(n) {
             ToyLangParser parser = new ToyLangParser(lexer);
             var ast = parser.Program();
             Console.WriteLine(ast);
-
         }
 
         static void testToyLangLexer()
@@ -323,8 +260,7 @@ function add(a, b) {
 
         static void testToyAssembler2()
         {
-            ToyAssemblyLexer lexer = new ToyAssemblyLexer(
-        @"
+            var input = @"
 // declare machine's spec
 #config memsize 2048
 #config programstart 64
@@ -347,33 +283,16 @@ get 701
 add
 print
 halt
-");
-
-            ToyAssembler assembler = new ToyAssembler(lexer);
-            var prog = assembler.Assemble();
-
-            Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
-
-            ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
-
-            vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
-            vm.RegisterHostFuntion("hostinput", (m, a) => { Console.Write("> "); return int.TryParse(Console.ReadLine(), out int res) ? res : 0; });
-            vm.RegisterHostFuntion("hostprint", (m, a) =>
-            {
-                var s = new string(vm.GetArrayAt(a[0]).Select(i => (char)i).ToArray());
-                Console.Write(s);
-                return 0;
-            });
-            vm.LoadProgram(prog);
-            vm.Run();
+";
+            var prog = Assemble(input);
+            Run(prog);
         }
 
 
         static void testToyAssembler()
         {
 
-            ToyAssemblyLexer lexer = new ToyAssemblyLexer(
-        @"
+            var input = @"
 // declare machine's spec
 #config memsize 2048
 #config programstart 64
@@ -407,9 +326,9 @@ brzero loopend
 br loopstart
 loopend:
 halt
-");
+";
 
-            ToyAssembler assembler = new ToyAssembler(lexer);
+            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(input));
             var prog = assembler.Assemble();
 
             Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
