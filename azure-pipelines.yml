@@ -13,4 +13,4 @@ steps:
 - task: DotNetCoreCLI@2
   inputs:
     command: 'build'
-    projects: '**\toystackmachine.core\toystackmachine.core.csproj'
+    projects: '**/toystackmachine.core/toystackmachine.core.csproj'
