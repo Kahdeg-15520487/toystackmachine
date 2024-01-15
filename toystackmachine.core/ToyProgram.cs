@@ -5,90 +5,93 @@ using System.IO;
 using System.Linq;
 using toystackmachine.core.ToyAssembly;
 
-public class ToyProgram
+namespace toystackmachine.core
 {
-    public int[] ROM;
-    public string[] Dependency;
-    public BiMap<string, int> Labels;
-
-    public ToyProgram(int[] rom, string[] depedency, Dictionary<string, int> labels)
+    public class ToyProgram
     {
-        this.ROM = rom;
-        this.Dependency = depedency;
-        this.Labels = new BiMap<string, int>(labels);
-    }
+        public int[] ROM;
+        public string[] Dependency;
+        public BiMap<string, int> Labels;
 
-    public static void Serialize(ToyProgram program, Stream stream)
-    {
-        var ROM = program.ROM;
-        var Dependency = program.Dependency;
-        var Labels = program.Labels;
-        BinaryWriter writer = new BinaryWriter(stream);
-        writer.Write("TOYASM");
-
-        // Write the ROM
-        writer.Write(ROM.Length);
-        foreach (int instruction in ROM)
+        public ToyProgram(int[] rom, string[] depedency, Dictionary<string, int> labels)
         {
-            writer.Write(instruction);
+            this.ROM = rom;
+            this.Dependency = depedency;
+            this.Labels = new BiMap<string, int>(labels);
         }
 
-        // Write the dependency
-        writer.Write(Dependency.Length);
-        foreach (string dependency in Dependency)
+        public static void Serialize(ToyProgram program, Stream stream)
         {
-            writer.Write(dependency);
+            var ROM = program.ROM;
+            var Dependency = program.Dependency;
+            var Labels = program.Labels;
+            BinaryWriter writer = new BinaryWriter(stream);
+            writer.Write("TOYASM");
+
+            // Write the ROM
+            writer.Write(ROM.Length);
+            foreach (int instruction in ROM)
+            {
+                writer.Write(instruction);
+            }
+
+            // Write the dependency
+            writer.Write(Dependency.Length);
+            foreach (string dependency in Dependency)
+            {
+                writer.Write(dependency);
+            }
+
+            // Write the labels
+            writer.Write(Labels.Forward.ToList().Count);
+            foreach (KeyValuePair<string, int> label in Labels.Forward)
+            {
+                writer.Write(label.Key);
+                writer.Write(label.Value);
+            }
         }
 
-        // Write the labels
-        writer.Write(Labels.Forward.ToList().Count);
-        foreach (KeyValuePair<string, int> label in Labels.Forward)
+        public static void Deserialize(Stream stream, out ToyProgram program)
         {
-            writer.Write(label.Key);
-            writer.Write(label.Value);
-        }
-    }
+            BinaryReader reader = new BinaryReader(stream);
+            string magic = reader.ReadString();
+            if (magic != "TOYASM")
+            {
+                throw new InvalidDataException("Invalid magic number");
+            }
 
-    public static void Deserialize(Stream stream, out ToyProgram program)
-    {
-        BinaryReader reader = new BinaryReader(stream);
-        string magic = reader.ReadString();
-        if (magic != "TOYASM")
-        {
-            throw new InvalidDataException("Invalid magic number");
-        }
+            // Read the ROM
+            int romLength = reader.ReadInt32();
+            int[] rom = new int[romLength];
+            for (int i = 0; i < romLength; i++)
+            {
+                rom[i] = reader.ReadInt32();
+            }
 
-        // Read the ROM
-        int romLength = reader.ReadInt32();
-        int[] rom = new int[romLength];
-        for (int i = 0; i < romLength; i++)
-        {
-            rom[i] = reader.ReadInt32();
-        }
+            // Read the dependency
+            int dependencyLength = reader.ReadInt32();
+            string[] dependency = new string[dependencyLength];
+            for (int i = 0; i < dependencyLength; i++)
+            {
+                dependency[i] = reader.ReadString();
+            }
 
-        // Read the dependency
-        int dependencyLength = reader.ReadInt32();
-        string[] dependency = new string[dependencyLength];
-        for (int i = 0; i < dependencyLength; i++)
-        {
-            dependency[i] = reader.ReadString();
-        }
+            // Read the labels
+            int labelLength = reader.ReadInt32();
+            Dictionary<string, int> labels = new Dictionary<string, int>();
+            for (int i = 0; i < labelLength; i++)
+            {
+                string key = reader.ReadString();
+                int value = reader.ReadInt32();
+                labels.Add(key, value);
+            }
 
-        // Read the labels
-        int labelLength = reader.ReadInt32();
-        Dictionary<string, int> labels = new Dictionary<string, int>();
-        for (int i = 0; i < labelLength; i++)
-        {
-            string key = reader.ReadString();
-            int value = reader.ReadInt32();
-            labels.Add(key, value);
+            program = new ToyProgram(rom, dependency, labels);
         }
 
-        program = new ToyProgram(rom, dependency, labels);
-    }
-
-    public override string ToString()
-    {
-        return ToyAssemblyDisassembler.Diassemble(this);
+        public override string ToString()
+        {
+            return ToyAssemblyDisassembler.Diassemble(this);
+        }
     }
 }
