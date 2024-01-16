@@ -215,9 +215,15 @@ namespace toystackmachine.core.ToyLang
 
         public AST AssignmentStatement(bool isExpr = false)
         {
-            // AssignmentStatement : VARIABLE ASSIGN Expr SEMICOLON
-            var left = Variable() as Var;
+            // AssignmentStatement : VARIABLE (LBRACKET Expr RBRACKET)? ASSIGN Expr SEMICOLON
+            var left = Variable();
             var token = _currentToken;
+            if (token.Type == TokenType.OpenBracket)
+            {
+                Eat(TokenType.OpenBracket);
+                left = new ArrayAccessExpression(left as Var, Expr());
+                Eat(TokenType.CloseBracket);
+            }
             Eat(TokenType.Assign);
             var right = Expr();
             if (!isExpr) Eat(TokenType.Semicolon);
@@ -226,10 +232,40 @@ namespace toystackmachine.core.ToyLang
 
         public AST VariableDeclareStatement()
         {
-            // VariableDeclareStatement : VAR VARIABLE (ASSIGN Expr)? SEMICOLON
+            // VariableDeclareStatement : VAR VARIABLE ((ASSIGN Expr)? SEMICOLON | LBRACKET RBRACKET ASSIGN (LBRACKET NUMBER RBRACKET | LBRACE (Expr)* RBRACE) SEMICOLON)
             Eat(TokenType.Var);
             var variable = Variable() as Var;
             AST initializer = null;
+            if (_currentToken.Type == TokenType.OpenBracket)
+            {
+                // ArrayDeclareStatement : VAR VARIABLE LBRACKET RBRACKET ASSIGN (LBRACKET NUMBER RBRACKET | LBRACE (Expr)* RBRACE) SEMICOLON
+                Eat(TokenType.OpenBracket);
+                Eat(TokenType.CloseBracket);
+                Eat(TokenType.Assign);
+                if (_currentToken.Type == TokenType.OpenBracket)
+                {
+                    Eat(TokenType.OpenBracket);
+                    initializer = Expr();
+                    Eat(TokenType.CloseBracket);
+                }
+                else if (_currentToken.Type == TokenType.OpenBrace)
+                {
+                    Eat(TokenType.OpenBrace);
+                    var nodes = new List<AST>();
+                    while (_currentToken.Type != TokenType.CloseBrace)
+                    {
+                        nodes.Add(Expr());
+                        if (_currentToken.Type == TokenType.Comma)
+                        {
+                            Eat(TokenType.Comma);
+                        }
+                    }
+                    Eat(TokenType.CloseBrace);
+                    initializer = new ArrayInitializerExpression(nodes);
+                }
+                Eat(TokenType.Semicolon);
+                return new VariableDeclareStatement(variable, initializer);
+            }
             if (_currentToken.Type == TokenType.Assign)
             {
                 Eat(TokenType.Assign);
@@ -354,9 +390,12 @@ namespace toystackmachine.core.ToyLang
         {
             // Factor : PLUS Factor
             //        | MINUS Factor
+            //        | INCREMENT Factor
+            //        | DECREMENT Factor
             //        | INTEGER
             //        | LPAREN Expr RPAREN
             //        | Variable
+            //        | Variable LBRAKET Expr RBRAKET
             //        | FunctionCall
             //        | READ
             //        | TRUE
@@ -370,6 +409,16 @@ namespace toystackmachine.core.ToyLang
             else if (token.Type == TokenType.Minus)
             {
                 Eat(TokenType.Minus);
+                return new UnaryOp(token, Factor());
+            }
+            else if (token.Type == TokenType.Increment)
+            {
+                Eat(TokenType.Increment);
+                return new UnaryOp(token, Factor());
+            }
+            else if (token.Type == TokenType.Decrement)
+            {
+                Eat(TokenType.Decrement);
                 return new UnaryOp(token, Factor());
             }
             else if (token.Type == TokenType.Number)
@@ -407,6 +456,13 @@ namespace toystackmachine.core.ToyLang
                 if (_currentToken.Type == TokenType.OpenParenthesis)
                 {
                     return FunctionCall(id.Token);
+                }
+                else if (_currentToken.Type == TokenType.OpenBracket)
+                {
+                    Eat(TokenType.OpenBracket);
+                    var index = Expr();
+                    Eat(TokenType.CloseBracket);
+                    return new ArrayAccessExpression(id, index);
                 }
                 else
                 {

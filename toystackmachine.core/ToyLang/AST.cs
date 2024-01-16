@@ -14,11 +14,11 @@ namespace toystackmachine.core.ToyLang
 
     public class Assign : AST
     {
-        public Var Left { get; set; }
+        public AST Left { get; set; }
         public Token Token { get; set; }
         public AST Right { get; set; }
 
-        public Assign(Var left, Token token, AST right)
+        public Assign(AST left, Token token, AST right)
         {
             Left = left;
             Token = token;
@@ -69,10 +69,12 @@ namespace toystackmachine.core.ToyLang
     public class Num : AST
     {
         public Token Token { get; set; }
+        public int Value { get; set; }
 
         public Num(Token token)
         {
             Token = token;
+            Value = int.Parse(token.Value);
         }
     }
 
@@ -223,6 +225,27 @@ namespace toystackmachine.core.ToyLang
             Condition = condition;
             TrueStatement = trueStatement;
             FalseStatement = falseStatement;
+        }
+    }
+    public class ArrayAccessExpression : AST
+    {
+        public Var Array { get; set; }
+        public AST Index { get; set; }
+
+        public ArrayAccessExpression(Var array, AST index)
+        {
+            Array = array;
+            Index = index;
+        }
+    }
+
+    public class ArrayInitializerExpression : AST
+    {
+        public List<AST> Elements { get; set; }
+
+        public ArrayInitializerExpression(List<AST> elements)
+        {
+            Elements = elements;
         }
     }
 

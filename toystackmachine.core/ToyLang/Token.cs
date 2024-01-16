@@ -59,6 +59,8 @@
         Equal,
         NotEqual,
         Not,
+        Increment,
+        Decrement,
 
         Assign,
         Semicolon,

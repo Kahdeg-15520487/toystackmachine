@@ -26,10 +26,14 @@
 
         PUSH_IMMEDIATE,
         GET,
+        GETAT,
+        GETARRAY,
         SET,
+        SETAT,
         SETARRAY,
 
         DUP,
+        SWAP,
         TRIP,
         DISCARD,
 
@@ -110,8 +114,17 @@
                 case "get":
                     opcode = OpCode.GET;
                     return true;
+                case "getat":
+                    opcode = OpCode.GETAT;
+                    return true;
+                case "getarray":
+                    opcode = OpCode.GETARRAY;
+                    return true;
                 case "set":
                     opcode = OpCode.SET;
+                    return true;
+                case "setat":
+                    opcode = OpCode.SETAT;
                     return true;
                 case "setarray":
                     opcode = OpCode.SETARRAY;
@@ -121,6 +134,9 @@
                     return true;
                 case "trip":
                     opcode = OpCode.TRIP;
+                    return true;
+                case "swap":
+                    opcode = OpCode.SWAP;
                     return true;
                 case "discard":
                     opcode = OpCode.DISCARD;
@@ -189,14 +205,22 @@
                     return "push";
                 case OpCode.GET:
                     return "get";
+                case OpCode.GETAT:
+                    return "getat";
+                case OpCode.GETARRAY:
+                    return "getarray";
                 case OpCode.SET:
                     return "set";
+                case OpCode.SETAT:
+                    return "setat";
                 case OpCode.SETARRAY:
                     return "setarray";
                 case OpCode.DUP:
                     return "dup";
                 case OpCode.TRIP:
                     return "trip";
+                case OpCode.SWAP:
+                    return "swap";
                 case OpCode.DISCARD:
                     return "discard";
                 case OpCode.PRINT:

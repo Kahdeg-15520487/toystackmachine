@@ -57,23 +57,44 @@ namespace toystackmachine.core.ToyLang
                 }
             }
 
-            if (char.IsDigit(current))
-            {
-                return new Token(TokenType.Number, _line, _column, current.ToString());
-            }
-
             if (current == '0' && _input[_position] == 'x')
             {
+                string hexNumber = "0x";
                 _position++;
                 _column++;
-                return this.ConvertToken(new Token(TokenType.HexNumber, _line, _column, current.ToString()));
+                while (_position < _input.Length && IsHexDigit(_input[_position]))
+                {
+                    hexNumber += _input[_position];
+                    _position++;
+                    _column++;
+                }
+                return ConvertToken(new Token(TokenType.HexNumber, _line, _column, hexNumber), out _);
             }
 
             if (current == 'b' && (_input[_position] == '0' || _input[_position] == '1'))
             {
+                string binNumber = "b";
                 _position++;
                 _column++;
-                return this.ConvertToken(new Token(TokenType.BinNumber, _line, _column, current.ToString()));
+                while (_position < _input.Length && IsBinDigit(_input[_position]))
+                {
+                    binNumber += _input[_position];
+                    _position++;
+                    _column++;
+                }
+                return ConvertToken(new Token(TokenType.BinNumber, _line, _column, binNumber), out _);
+            }
+
+            if (char.IsDigit(current))
+            {
+                string number = current.ToString();
+                while (_position < _input.Length && char.IsDigit(_input[_position]))
+                {
+                    number += _input[_position];
+                    _position++;
+                    _column++;
+                }
+                return new Token(TokenType.Number, _line, _column, number);
             }
 
             if (char.IsLetter(current))
@@ -97,7 +118,21 @@ namespace toystackmachine.core.ToyLang
             switch (current)
             {
                 case '"':
-                    return new Token(TokenType.String, _line, _column, current.ToString());
+                    string str = "";
+                    while (_position < _input.Length && _input[_position] != '"')
+                    {
+                        str += _input[_position];
+                        _position++;
+                        _column++;
+                    }
+
+                    if (_position < _input.Length && _input[_position] == '"')
+                    {
+                        _position++;
+                        _column++;
+                    }
+
+                    return new Token(TokenType.String, _line, _column, str);
                 case '\'':
                     return new Token(TokenType.Char, _line, _column, current.ToString());
                 case '/':
@@ -105,7 +140,14 @@ namespace toystackmachine.core.ToyLang
                     {
                         _position++;
                         _column++;
-                        return new Token(TokenType.Comment, _line, _column, "//");
+                        string comment = "//";
+                        while (_position < _input.Length && _input[_position] != '\n')
+                        {
+                            comment += _input[_position];
+                            _position++;
+                            _column++;
+                        }
+                        return new Token(TokenType.Comment, _line, _column, comment);
                     }
                     else
                     {
@@ -127,9 +169,27 @@ namespace toystackmachine.core.ToyLang
                 case ']':
                     return new Token(TokenType.CloseBracket, _line, _column, current.ToString());
                 case '+':
-                    return new Token(TokenType.Plus, _line, _column, current.ToString());
+                    if (_input[_position] == '+')
+                    {
+                        _position++;
+                        _column++;
+                        return new Token(TokenType.Increment, _line, _column, "++");
+                    }
+                    else
+                    {
+                        return new Token(TokenType.Plus, _line, _column, current.ToString());
+                    }
                 case '-':
-                    return new Token(TokenType.Minus, _line, _column, current.ToString());
+                    if (_input[_position] == '-')
+                    {
+                        _position++;
+                        _column++;
+                        return new Token(TokenType.Decrement, _line, _column, "--");
+                    }
+                    else
+                    {
+                        return new Token(TokenType.Minus, _line, _column, current.ToString());
+                    }
                 case '*':
                     return new Token(TokenType.Multiply, _line, _column, current.ToString());
                 case '%':
@@ -185,22 +245,33 @@ namespace toystackmachine.core.ToyLang
             return new Token(TokenType.EOF, _line, _column, null);
         }
 
-        public Token ConvertToken(Token token)
+        private bool IsBinDigit(char v)
+        {
+            return v == '0' || v == '1';
+        }
+
+        private bool IsHexDigit(char v)
+        {
+            return char.IsDigit(v) || (v >= 'a' && v <= 'f') || (v >= 'A' && v <= 'F');
+        }
+
+        public static Token ConvertToken(Token token, out int number)
         {
             if (token.Type == TokenType.HexNumber)
             {
                 string value = token.Value.Substring(2); // remove '0x'
-                int number = Convert.ToInt32(value, 16);
+                number = Convert.ToInt32(value, 16);
                 return new Token(TokenType.Number, token.Line, token.Column, number.ToString());
             }
             else if (token.Type == TokenType.BinNumber)
             {
                 string value = token.Value.Substring(1); // remove 'b'
-                int number = Convert.ToInt32(value, 2);
+                number = Convert.ToInt32(value, 2);
                 return new Token(TokenType.Number, token.Line, token.Column, number.ToString());
             }
             else
             {
+                number = 0;
                 return token;
             }
         }

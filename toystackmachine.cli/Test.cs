@@ -1,4 +1,5 @@
-﻿using toystackmachine.core.ToyAssembly;
+﻿using toystackmachine.core;
+using toystackmachine.core.ToyAssembly;
 using toystackmachine.core.ToyLang;
 
 namespace toystackmachine.cli
@@ -7,7 +8,15 @@ namespace toystackmachine.cli
     {
         public static void RunTest()
         {
-            testtoyLangCompilerFor();
+            ToyLangArrayParser();
+
+            //testTrueFalse();
+
+            //testIncrementDecrement();
+
+            //testHostCaller();
+
+            //testtoyLangCompilerFor();
 
             //testToyLangCompilerWhile();
 
@@ -34,6 +43,129 @@ namespace toystackmachine.cli
             //testToyLexer();
 
             //testToyStackMachine();
+        }
+
+        private static void testToyLangArrayDeclaration()
+        {
+            string input = @"
+function main(){
+    var a[] = {1,2,3,4,5};
+    print(a[0]);
+    print(a[1]);
+    print(a[2]);
+    print(a[3]);
+    print(a[4]);
+}
+";
+        }
+
+        private static void ToyLangArrayParser()
+        {
+            string input = @"
+function main(){
+//    var a[] = {1,2,3,4,5};
+//    print(a[3]);
+    var b[] = [5];
+    b[3] = 20;
+    print(b[2+1]);
+}
+";
+            ToyLangParser parser = new ToyLangParser(new ToyLangLexer(input));
+            var ast = parser.Program();
+            ToyLangCompiler compiler = new ToyLangCompiler();
+            var asm = compiler.Compile(ast, new ToyStackMachineMemoryConfiguration());
+            Console.WriteLine("Compiled program:");
+            Console.WriteLine(asm);
+            var prog = Assemble(asm);
+            Run(prog);
+        }
+
+        private static void testToyLangLexerString()
+        {
+            string input = @"
+""test""
+";
+            ToyLangLexer lexer = new ToyLangLexer(input);
+            while (!lexer.IsEOF)
+            {
+                Console.WriteLine(lexer.NextToken());
+            }
+        }
+
+        private static void testTrueFalse()
+        {
+            string input = @"
+function main(){
+    var a = true;
+    var b = false;
+    print(a);
+    print(b);
+}
+";
+            string asm = Compile(input);
+            ToyProgram prog = Assemble(asm);
+            Run(prog);
+        }
+
+        private static void testIncrementDecrement()
+        {
+            string input = @"
+function main(){
+    var n = read();
+    print(++n);
+    print(n);
+    print(--n);
+    print(n);
+    n = --n;
+    print(n);
+    n = --n;
+    print(n);
+    n = ++n;
+    print(n);
+    n = ++n;
+    print(n);
+}
+";
+            string asm = Compile(input);
+            ToyProgram prog = Assemble(asm);
+            Run(prog);
+        }
+
+        static void testHostCaller()
+        {
+
+            string src = @"
+function main(){
+    var n = read();
+    for(var i=n; i>0; i=i-1){
+        print(i);
+    }
+}
+function add(a,b){
+    return a+b;
+}
+";
+
+            var vmspec = new ToyStackMachineMemoryConfiguration();
+            var prog = new ToyAssembler(new ToyAssemblyLexer(new ToyLangCompiler().Compile(new ToyLangParser(new ToyLangLexer(src)).Program(), vmspec))).Assemble();
+
+            var vm = new ToyStackMachine(vmspec);
+
+            vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
+            vm.RegisterHostFuntion("hostinput", (m, a) => { Console.Write("> "); return int.TryParse(Console.ReadLine(), out int res) ? res : 0; });
+            vm.RegisterHostFuntion("hostprint", (m, a) =>
+            {
+                var s = new string(vm.GetArrayAt(a[0]).Select(i => (char)i).ToArray());
+                Console.Write(s);
+                return 0;
+            });
+            vm.LoadProgram(prog);
+            vm.Run("main");
+
+            vm.Push(10);
+            vm.Push(20);
+            vm.Run("add");
+            Console.WriteLine(vm.Pop());
         }
 
         static void testtoyLangCompilerFor()
@@ -140,7 +272,7 @@ function factorial(n){
                 return 0;
             });
             vm.LoadProgram(prog);
-            vm.Run(entryFunction);
+            vm.Run(entryFunction, true);
         }
 
         static void testToyLangCompiler3()

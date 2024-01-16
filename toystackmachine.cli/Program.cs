@@ -5,6 +5,7 @@ using System.IO;
 using CommandLine;
 
 using toystackmachine.cli;
+using toystackmachine.core;
 using toystackmachine.core.ToyAssembly;
 
 namespace ToyAssemblerCLI

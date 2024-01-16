@@ -33,7 +33,7 @@ namespace toystackmachine.core
             hostFunctions = new List<Func<int[], int[], int>>();
         }
 
-        public void LoadProgram(ToyProgram program)
+        public void LoadProgram(ToyProgram program, bool debug = false)
         {
             if (program.ROM.Length >= config.StackStart - config.ProgramStart)
             {
@@ -49,8 +49,11 @@ namespace toystackmachine.core
             this.loadedProgram = program;
             Array.Copy(program.ROM, 0, memory, config.ProgramStart, program.ROM.Length);
             ip = config.ProgramStart;
-            Console.WriteLine("loaded:");
-            Console.WriteLine(ToyAssemblyDisassembler.Diassemble(program));
+            if (debug)
+            {
+                Console.WriteLine("loaded:");
+                Console.WriteLine(ToyAssemblyDisassembler.Diassemble(program));
+            }
         }
 
         public void RegisterHostFuntion(string functionName, Func<int[], int[], int> hostFuntion)
@@ -175,6 +178,7 @@ namespace toystackmachine.core
             {
                 ip = config.ProgramStart + this.loadedProgram.Labels.Forward[functionName];
                 callStack.Push(config.ProgramStart + this.loadedProgram.ROM.Length - 1);
+                isHalting = false;
             }
 
             if (isHalting)
@@ -195,7 +199,7 @@ namespace toystackmachine.core
                     Console.WriteLine($"stack: {string.Join(", ", GetActiveStack())}");
                     Console.WriteLine("=====");
                 }
-                int a, b, dest;
+                int a, b, dest, pointer, size;
                 bool isJump = false;
 
                 switch (opcode)
@@ -306,19 +310,38 @@ namespace toystackmachine.core
                         break;
                     case OpCode.GET:
                         {
-                            int pointer = memory[++ip];
+                            pointer = memory[++ip];
                             Push(memory[pointer]);
+                        }
+                        break;
+                    case OpCode.GETAT:
+                        {
+                            pointer = Pop();
+                            Push(memory[pointer]);
+                        }
+                        break;
+                    case OpCode.GETARRAY:
+                        {
+                            pointer = Pop();
+                            PushArray(GetArrayAt(pointer));
                         }
                         break;
                     case OpCode.SET:
                         {
-                            int pointer = memory[++ip];
+                            pointer = memory[++ip];
                             memory[pointer] = Pop();
+                        }
+                        break;
+                    case OpCode.SETAT:
+                        {
+                            a = Pop();
+                            pointer = Pop();
+                            memory[pointer] = a;
                         }
                         break;
                     case OpCode.SETARRAY:
                         {
-                            int pointer = memory[++ip];
+                            pointer = Pop();
                             SetArrayAt(pointer, PopArray());
                         }
                         break;
@@ -335,6 +358,14 @@ namespace toystackmachine.core
                             Push(temp);
                             Push(temp);
                             Push(temp);
+                        }
+                        break;
+                    case OpCode.SWAP:
+                        {
+                            a = Pop();
+                            b = Pop();
+                            Push(a);
+                            Push(b);
                         }
                         break;
                     case OpCode.DISCARD:

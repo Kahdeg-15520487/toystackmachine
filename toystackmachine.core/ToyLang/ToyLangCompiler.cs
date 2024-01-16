@@ -83,11 +83,28 @@ namespace toystackmachine.core.ToyLang
                     currentScope = global;
                     break;
                 case VariableDeclareStatement variableDeclareStatement:
-                    currentScope.Define(variableDeclareStatement.Variable.Token.Value);
                     if (variableDeclareStatement.Initializer != null)
                     {
-                        Visit(variableDeclareStatement.Initializer);
-                        _instructions.Add($"set {currentScope[variableDeclareStatement.Variable.Token.Value]}");
+                        switch (variableDeclareStatement.Initializer)
+                        {
+                            case Num num:
+                                currentScope.Define(variableDeclareStatement.Variable.Token.Value, num.Value);
+                                break;
+                            case ArrayInitializerExpression arrayInitializerExpression:
+                                currentScope.Define(variableDeclareStatement.Variable.Token.Value, arrayInitializerExpression.Elements.Count);
+                                foreach (var expr in arrayInitializerExpression.Elements)
+                                {
+                                    Visit(expr);
+                                }
+                                _instructions.Add($"push {arrayInitializerExpression.Elements.Count}");
+                                _instructions.Add($"push {currentScope[variableDeclareStatement.Variable.Token.Value]}");
+                                _instructions.Add($"setarray");
+                                break;
+                            default:
+                                Visit(variableDeclareStatement.Initializer);
+                                _instructions.Add($"set {currentScope[variableDeclareStatement.Variable.Token.Value]}");
+                                break;
+                        }
                     }
                     break;
                 case IfStatement ifStatement:
@@ -112,7 +129,18 @@ namespace toystackmachine.core.ToyLang
                     break;
                 case Assign assign:
                     Visit(assign.Right);
-                    _instructions.Add($"set {currentScope[assign.Left.Token.Value]}");
+                    switch (assign.Left)
+                    {
+                        case ArrayAccessExpression arrayAccessExpression:
+                            Visit(arrayAccessExpression.Index);
+                            _instructions.Add($"push {currentScope[arrayAccessExpression.Array.Token.Value]}");
+                            _instructions.Add($"add");
+                            _instructions.Add($"setat");
+                            break;
+                        default:
+                            _instructions.Add($"set {currentScope[(assign.Left as Var).Token.Value]}");
+                            break;
+                    }
                     break;
                 case Var variable:
                     _instructions.Add($"get {currentScope[variable.Token.Value]}");
@@ -130,6 +158,12 @@ namespace toystackmachine.core.ToyLang
                     }
                     _instructions.Add($"call {functionCallExpression.FunctionName.Value}");
                     break;
+                case ArrayAccessExpression arrayAccessExpression:
+                    Visit(arrayAccessExpression.Index);
+                    _instructions.Add($"push {currentScope[arrayAccessExpression.Array.Token.Value]}");
+                    _instructions.Add($"add");
+                    _instructions.Add($"getat");
+                    break;
                 //todo constant string
                 case BinOp binOp:
                     Visit(binOp.Left);
@@ -138,6 +172,10 @@ namespace toystackmachine.core.ToyLang
                     break;
                 case UnaryOp unaryOp:
                     Visit(unaryOp.Expr);
+                    if (unaryOp.Token.Type == TokenType.Increment || unaryOp.Token.Type == TokenType.Decrement)
+                    {
+                        _instructions.Add("push 1");
+                    }
                     _instructions.Add(OpCodeParser.ToString(GetOpCode(unaryOp.Token.Type)));
                     break;
                 case WhileStatement whileNode:
@@ -202,8 +240,10 @@ namespace toystackmachine.core.ToyLang
             switch (tokenType)
             {
                 case TokenType.Plus:
+                case TokenType.Increment:
                     return OpCode.ADD;
                 case TokenType.Minus:
+                case TokenType.Decrement:
                     return OpCode.SUB;
                 case TokenType.Multiply:
                     return OpCode.MUL;
