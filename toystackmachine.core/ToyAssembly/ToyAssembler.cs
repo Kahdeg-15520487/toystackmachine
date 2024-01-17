@@ -184,7 +184,8 @@ namespace toystackmachine.core.ToyAssembly
                                     emitter.Emit(OpCode.PUSH_IMMEDIATE, data[i]);
                                 }
                                 emitter.Emit(OpCode.PUSH_IMMEDIATE, length);
-                                emitter.Emit(OpCode.SETARRAY, dataPtr);
+                                emitter.Emit(OpCode.PUSH_IMMEDIATE, dataPtr);
+                                emitter.Emit(OpCode.SETARRAY);
                             }
                             break;
                         case TokenType.Char:

@@ -8,7 +8,8 @@ namespace toystackmachine.core.ToyLang
         private ToyStackMachineMemoryConfiguration memoryConfiguration;
         public Scope Parent { get; private set; }
         private Dictionary<string, int> variables { get; } = new Dictionary<string, int>();
-        protected int currentMemoryPointer = 0;
+        public int currentMemoryPointer = 0;
+        public IEnumerable<string> defined => variables.Keys;
 
         public Scope(ToyStackMachineMemoryConfiguration memoryConfiguration, Scope parent = null)
         {

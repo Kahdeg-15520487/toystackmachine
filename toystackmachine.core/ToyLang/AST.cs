@@ -78,6 +78,16 @@ namespace toystackmachine.core.ToyLang
         }
     }
 
+    public class LiteralString : AST
+    {
+        public Token Token { get; set; }
+
+        public LiteralString(Token token)
+        {
+            Token = token;
+        }
+    }
+
     public class FunctionNode : AST
     {
         public Token FunctionName { get; set; }

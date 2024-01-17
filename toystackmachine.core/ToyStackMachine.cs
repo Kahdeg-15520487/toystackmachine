@@ -334,8 +334,8 @@ namespace toystackmachine.core
                         break;
                     case OpCode.SETAT:
                         {
-                            a = Pop();
                             pointer = Pop();
+                            a = Pop();
                             memory[pointer] = a;
                         }
                         break;

@@ -1,46 +1,58 @@
 using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using toystackmachine.core.ToyAssembly;
 
 namespace toystackmachine.core.ToyLang
 {
     public class ToyLangCompiler
     {
+        private List<string> _headers = new List<string>();
         private List<string> _instructions = new List<string>();
         private Dictionary<string, int> _functions = new Dictionary<string, int>();
         private ToyStackMachineMemoryConfiguration memoryConfiguration;
         private Scope global;
         private Scope currentScope;
+        private Scope constants;
         private bool isInFunction;
         private Random randomLabelCounter;
 
         public string Compile(AST node, ToyStackMachineMemoryConfiguration memoryConfiguration)
         {
+            _headers.Clear();
             _instructions.Clear();
             _functions.Clear();
             randomLabelCounter = new Random();
             this.memoryConfiguration = memoryConfiguration;
             this.global = new Scope(memoryConfiguration: memoryConfiguration);
+            this.constants = new Scope(memoryConfiguration: memoryConfiguration);
+            this.constants.currentMemoryPointer = memoryConfiguration.StackMax + 512;
             currentScope = global;
             this.isInFunction = false;
-            GenerateHeader();
             Visit(node);
+            GenerateHeader();
             return string.Join(Environment.NewLine, _instructions);
         }
 
         private void GenerateHeader()
         {
-            _instructions.Add("//declare machine's spec");
-            _instructions.Add($"#config memsize {memoryConfiguration.MemorySize}");
-            _instructions.Add($"#config programstart {memoryConfiguration.ProgramStart}");
-            _instructions.Add($"#config stackstart {memoryConfiguration.StackStart}");
-            _instructions.Add($"#config stackmax {memoryConfiguration.StackMax}");
+            _headers.Add("//declare machine's spec");
+            _headers.Add($"#config memsize {memoryConfiguration.MemorySize}");
+            _headers.Add($"#config programstart {memoryConfiguration.ProgramStart}");
+            _headers.Add($"#config stackstart {memoryConfiguration.StackStart}");
+            _headers.Add($"#config stackmax {memoryConfiguration.StackMax}");
 
-            _instructions.Add("//declare host functions");
-            _instructions.Add("#hostfunction hostadd");
-            _instructions.Add("#hostfunction hostinput");
-            _instructions.Add("#hostfunction hostprint");
+            _headers.Add("//declare host functions");
+            _headers.Add("#hostfunction hostadd");
+            _headers.Add("#hostfunction hostinput");
+            _headers.Add("#hostfunction hostprint");
+
+            foreach (var s in constants.defined)
+            {
+                _headers.Add($"#data {constants[s]} \"{s}\"");
+            }
+
+            _instructions = _headers.Concat(_instructions).ToList();
         }
 
         private void Visit(AST node)
@@ -164,7 +176,11 @@ namespace toystackmachine.core.ToyLang
                     _instructions.Add($"add");
                     _instructions.Add($"getat");
                     break;
-                //todo constant string
+                case LiteralString literalString:
+                    this.constants.Define(literalString.Token.Value, literalString.Token.Value.Length);
+                    _instructions.Add($"push {this.constants[literalString.Token.Value]}");
+                    _instructions.Add($"getarray");
+                    break;
                 case BinOp binOp:
                     Visit(binOp.Left);
                     Visit(binOp.Right);

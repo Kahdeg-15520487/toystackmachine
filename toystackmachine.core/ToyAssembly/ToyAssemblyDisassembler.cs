@@ -53,7 +53,6 @@ namespace toystackmachine.core.ToyAssembly
                     case OpCode.PUSH_IMMEDIATE:
                     case OpCode.GET:
                     case OpCode.SET:
-                    case OpCode.SETARRAY:
                         sb.AppendFormat("{0} {1}{2}", OpCodeParser.ToString(opcode), binary[i++], Environment.NewLine);
                         break;
                     case OpCode.CALL_HOST_FUNCTION:

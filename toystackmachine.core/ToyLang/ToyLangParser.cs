@@ -393,6 +393,7 @@ namespace toystackmachine.core.ToyLang
             //        | INCREMENT Factor
             //        | DECREMENT Factor
             //        | INTEGER
+            //        | STRING
             //        | LPAREN Expr RPAREN
             //        | Variable
             //        | Variable LBRAKET Expr RBRAKET
@@ -425,6 +426,11 @@ namespace toystackmachine.core.ToyLang
             {
                 Eat(TokenType.Number);
                 return new Num(token);
+            }
+            else if (token.Type == TokenType.String)
+            {
+                Eat(TokenType.String);
+                return new LiteralString(token);
             }
             else if (token.Type == TokenType.OpenParenthesis)
             {
