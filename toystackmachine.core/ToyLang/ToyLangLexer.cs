@@ -14,6 +14,7 @@ namespace toystackmachine.core.ToyLang
         {
             "if", "else", "while", "do", "for", "break", "continue", "return", "var",
             "function", "print", "read", "true", "false",
+            "sizeof",
         };
 
         public ToyLangLexer(string input)

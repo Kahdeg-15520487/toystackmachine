@@ -401,6 +401,7 @@ namespace toystackmachine.core.ToyLang
             //        | READ
             //        | TRUE
             //        | FALSE
+            //        | SIZEOF
             var token = _currentToken;
             if (token.Type == TokenType.Plus)
             {
@@ -474,6 +475,14 @@ namespace toystackmachine.core.ToyLang
                 {
                     return id;
                 }
+            }
+            else if (token.Type == TokenType.Sizeof)
+            {
+                Eat(TokenType.Sizeof);
+                Eat(TokenType.OpenParenthesis);
+                var id = Variable() as Var;
+                Eat(TokenType.CloseParenthesis);
+                return new SizeOfExpression(id);
             }
             else
             {

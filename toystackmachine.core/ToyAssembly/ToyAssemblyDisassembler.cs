@@ -22,6 +22,11 @@ namespace toystackmachine.core.ToyAssembly
                 sb.Append("  ");
                 sb.AppendLine(dep);
             }
+            sb.AppendLine("Constants:");
+            foreach (var constant in program.Constants.Forward)
+            {
+                sb.AppendLine($"  {constant.Key} -> {constant.Value}");
+            }
             sb.AppendLine("Labels:");
             foreach (var label in labels.ToList())
             {

@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
 using toystackmachine.core.ToyAssembly;
 
 namespace toystackmachine.core
@@ -12,12 +13,14 @@ namespace toystackmachine.core
         public int[] ROM;
         public string[] Dependency;
         public BiMap<string, int> Labels;
+        public BiMap<string, int> Constants;
 
-        public ToyProgram(int[] rom, string[] depedency, Dictionary<string, int> labels)
+        public ToyProgram(int[] rom, string[] depedency, Dictionary<string, int> labels, Dictionary<string, int> constants)
         {
             this.ROM = rom;
             this.Dependency = depedency;
             this.Labels = new BiMap<string, int>(labels);
+            this.Constants = new BiMap<string, int>(constants);
         }
 
         public static void Serialize(ToyProgram program, Stream stream)
@@ -48,6 +51,14 @@ namespace toystackmachine.core
             {
                 writer.Write(label.Key);
                 writer.Write(label.Value);
+            }
+
+            // Write the constants
+            writer.Write(program.Constants.Forward.ToList().Count);
+            foreach (KeyValuePair<string, int> constant in program.Constants.Forward)
+            {
+                writer.Write(constant.Key);
+                writer.Write(constant.Value);
             }
         }
 
@@ -86,7 +97,17 @@ namespace toystackmachine.core
                 labels.Add(key, value);
             }
 
-            program = new ToyProgram(rom, dependency, labels);
+            // Read the constants
+            int constantLength = reader.ReadInt32();
+            Dictionary<string, int> constants = new Dictionary<string, int>();
+            for (int i = 0; i < constantLength; i++)
+            {
+                string key = reader.ReadString();
+                int value = reader.ReadInt32();
+                constants.Add(key, value);
+            }
+
+            program = new ToyProgram(rom, dependency, labels, constants);
         }
 
         public override string ToString()

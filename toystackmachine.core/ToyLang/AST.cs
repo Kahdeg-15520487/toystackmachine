@@ -223,6 +223,14 @@ namespace toystackmachine.core.ToyLang
     }
 
     public class ReadExpression : AST { }
+    public class SizeOfExpression : AST {
+        public Var v { get; set; }
+
+        public SizeOfExpression(Var v)
+        {
+            this.v = v;
+        }
+    }
 
     public class IfStatement : AST
     {

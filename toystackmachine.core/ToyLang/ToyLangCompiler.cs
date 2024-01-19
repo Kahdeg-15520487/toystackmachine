@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using toystackmachine.core.ToyAssembly;
 
 namespace toystackmachine.core.ToyLang
@@ -16,6 +17,7 @@ namespace toystackmachine.core.ToyLang
         private Scope constants;
         private bool isInFunction;
         private Random randomLabelCounter;
+        private bool isLastVariableArray;
 
         public string Compile(AST node, ToyStackMachineMemoryConfiguration memoryConfiguration)
         {
@@ -26,7 +28,7 @@ namespace toystackmachine.core.ToyLang
             this.memoryConfiguration = memoryConfiguration;
             this.global = new Scope(memoryConfiguration: memoryConfiguration);
             this.constants = new Scope(memoryConfiguration: memoryConfiguration);
-            this.constants.currentMemoryPointer = memoryConfiguration.StackMax + 512;
+            this.constants.currentMemoryPointer = memoryConfiguration.StackMax + 1024;
             currentScope = global;
             this.isInFunction = false;
             Visit(node);
@@ -49,7 +51,7 @@ namespace toystackmachine.core.ToyLang
 
             foreach (var s in constants.defined)
             {
-                _headers.Add($"#data {constants[s]} \"{s}\"");
+                _headers.Add($"#data \"{s}\"");
             }
 
             _instructions = _headers.Concat(_instructions).ToList();
@@ -83,7 +85,7 @@ namespace toystackmachine.core.ToyLang
                     //pop parameters value from stack into local variables
                     for (int i = functionNode.Parameters.Count - 1; i >= 0; i--)
                     {
-                        _instructions.Add($"set {localScope[functionNode.Parameters[i].Token.Value]}");
+                        _instructions.Add($"set {localScope[functionNode.Parameters[i].Token.Value].Address}");
                     }
                     //declare function body
                     foreach (var stmt in functionNode.Body)
@@ -100,7 +102,9 @@ namespace toystackmachine.core.ToyLang
                         switch (variableDeclareStatement.Initializer)
                         {
                             case Num num:
-                                currentScope.Define(variableDeclareStatement.Variable.Token.Value, num.Value);
+                                currentScope.Define(variableDeclareStatement.Variable.Token.Value);
+                                _instructions.Add($"push {num.Token.Value}");
+                                _instructions.Add($"set {currentScope[variableDeclareStatement.Variable.Token.Value].Address}");
                                 break;
                             case ArrayInitializerExpression arrayInitializerExpression:
                                 currentScope.Define(variableDeclareStatement.Variable.Token.Value, arrayInitializerExpression.Elements.Count);
@@ -109,12 +113,19 @@ namespace toystackmachine.core.ToyLang
                                     Visit(expr);
                                 }
                                 _instructions.Add($"push {arrayInitializerExpression.Elements.Count}");
-                                _instructions.Add($"push {currentScope[variableDeclareStatement.Variable.Token.Value]}");
-                                _instructions.Add($"setarray");
+                                _instructions.Add($"push {currentScope[variableDeclareStatement.Variable.Token.Value].Address}");
+                                _instructions.Add("setarray");
+                                break;
+                            case LiteralString literalString:
+                                Visit(literalString);
+                                currentScope.Define(variableDeclareStatement.Variable.Token.Value, literalString.Token.Value.Length);
+                                _instructions.Add($"push {currentScope[variableDeclareStatement.Variable.Token.Value].Address}");
+                                _instructions.Add("setarray");
                                 break;
                             default:
+                                currentScope.Define(variableDeclareStatement.Variable.Token.Value);
                                 Visit(variableDeclareStatement.Initializer);
-                                _instructions.Add($"set {currentScope[variableDeclareStatement.Variable.Token.Value]}");
+                                _instructions.Add($"set {currentScope[variableDeclareStatement.Variable.Token.Value].Address}");
                                 break;
                         }
                     }
@@ -145,17 +156,29 @@ namespace toystackmachine.core.ToyLang
                     {
                         case ArrayAccessExpression arrayAccessExpression:
                             Visit(arrayAccessExpression.Index);
-                            _instructions.Add($"push {currentScope[arrayAccessExpression.Array.Token.Value]}");
+                            _instructions.Add($"push {currentScope[arrayAccessExpression.Array.Token.Value].Address}");
                             _instructions.Add($"add");
                             _instructions.Add($"setat");
                             break;
                         default:
-                            _instructions.Add($"set {currentScope[(assign.Left as Var).Token.Value]}");
+                            _instructions.Add($"set {currentScope[(assign.Left as Var).Token.Value].Address}");
                             break;
                     }
                     break;
                 case Var variable:
-                    _instructions.Add($"get {currentScope[variable.Token.Value]}");
+                    {
+                        var v = currentScope[variable.Token.Value];
+                        if (v.Size > 1)
+                        {
+                            _instructions.Add($"push {v.Address}");
+                            _instructions.Add("getarray");
+                            this.isLastVariableArray = v.Size > 1;
+                        }
+                        else
+                        {
+                            _instructions.Add($"get {v.Address}");
+                        }
+                    }
                     break;
                 case Num number:
                     _instructions.Add($"push {number.Token.Value}");
@@ -172,14 +195,15 @@ namespace toystackmachine.core.ToyLang
                     break;
                 case ArrayAccessExpression arrayAccessExpression:
                     Visit(arrayAccessExpression.Index);
-                    _instructions.Add($"push {currentScope[arrayAccessExpression.Array.Token.Value]}");
+                    _instructions.Add($"push {currentScope[arrayAccessExpression.Array.Token.Value].Address}");
                     _instructions.Add($"add");
                     _instructions.Add($"getat");
                     break;
                 case LiteralString literalString:
                     this.constants.Define(literalString.Token.Value, literalString.Token.Value.Length);
-                    _instructions.Add($"push {this.constants[literalString.Token.Value]}");
+                    _instructions.Add($"push {this.constants[literalString.Token.Value].Address}");
                     _instructions.Add($"getarray");
+                    isLastVariableArray = true;
                     break;
                 case BinOp binOp:
                     Visit(binOp.Left);
@@ -225,8 +249,16 @@ namespace toystackmachine.core.ToyLang
                     _instructions.Add("ret");
                     break;
                 case PrintStatement printStatement:
+                    isLastVariableArray = false;
                     Visit(printStatement.Expr);
-                    _instructions.Add("print");
+                    if (isLastVariableArray)
+                    {
+                        _instructions.Add("printarray");
+                    }
+                    else
+                    {
+                        _instructions.Add("print");
+                    }
                     break;
                 case CompoundStatement compoundStatement:
                     foreach (var statement in compoundStatement.Children)
@@ -236,6 +268,9 @@ namespace toystackmachine.core.ToyLang
                     break;
                 case ReadExpression _:
                     _instructions.Add("callhost hostinput");
+                    break;
+                case SizeOfExpression sizeOfExpression:
+                    _instructions.Add($"push {currentScope[sizeOfExpression.v.Token.Value].Size}");
                     break;
                 case NoOp _:
                     break;

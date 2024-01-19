@@ -10,10 +10,10 @@ namespace toystackmachine.core.ToyAssembly
         ToyEmitter emitter;
         private Token currentToken;
 
-        public ToyAssembler(ToyAssemblyLexer lexer)
+        public ToyAssembler(ToyAssemblyLexer lexer, ToyStackMachineMemoryConfiguration memoryConfiguration)
         {
             this.lexer = lexer;
-            this.emitter = new ToyEmitter();
+            this.emitter = new ToyEmitter(memoryConfiguration);
             this.currentToken = lexer.NextToken();
         }
 
@@ -167,25 +167,13 @@ namespace toystackmachine.core.ToyAssembly
                     break;
                 case "data":
                     SkipWhiteSpace();
-                    var dataPtrToken = currentToken;
-                    Eat(TokenType.Number, TokenType.HexNumber, TokenType.BinNumber);
-                    SkipWhiteSpace();
-                    var dataPtr = GetNumber(dataPtrToken);
                     var dataContent = currentToken;
                     Eat(TokenType.String); //todo int array
                     switch (dataContent.type)
                     {
                         case TokenType.String:
                             {
-                                var length = dataContent.value.Length;
-                                var data = dataContent.value.ToArray();
-                                for (int i = 0; i < length; i++)
-                                {
-                                    emitter.Emit(OpCode.PUSH_IMMEDIATE, data[i]);
-                                }
-                                emitter.Emit(OpCode.PUSH_IMMEDIATE, length);
-                                emitter.Emit(OpCode.PUSH_IMMEDIATE, dataPtr);
-                                emitter.Emit(OpCode.SETARRAY);
+                                emitter.AddConstant(dataContent.value);
                             }
                             break;
                         case TokenType.Char:

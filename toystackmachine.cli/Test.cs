@@ -8,7 +8,9 @@ namespace toystackmachine.cli
     {
         public static void RunTest()
         {
-            testToyLangString();
+            testToyLangStringConcat();
+
+            //testToyLangString();
 
             //testToyLangArray();
 
@@ -47,11 +49,33 @@ namespace toystackmachine.cli
             //testToyStackMachine();
         }
 
+        private static void testToyLangStringConcat()
+        {
+            string input = @"
+function main(){
+    var a = ""hello"";
+    print(sizeof(a));
+    //var b = ""world"";
+    //print(concat(a,b));
+}
+function concat(a,b){
+    var c[] = [sizeof(a)+sizeof(b)];
+    return c;
+}
+";
+            string asm = Compile(input);
+            Console.WriteLine(asm);
+            //ToyProgram prog = Assemble(asm);
+            //Run(prog);
+        }
+
         private static void testToyLangString()
         {
             string input = @"
 function main(){
+    var a = ""test"";
     print(""hello world"");
+    print(a);
 }
 ";
             ToyLangParser parser = new ToyLangParser(new ToyLangLexer(input));
@@ -61,7 +85,7 @@ function main(){
             Console.WriteLine("Compiled program:");
             Console.WriteLine(asm);
             var prog = Assemble(asm);
-            Run(prog,isDebug: true);
+            Run(prog, isDebug: true);
         }
 
         private static void testToyLangArray()
@@ -152,7 +176,7 @@ function add(a,b){
 ";
 
             var vmspec = new ToyStackMachineMemoryConfiguration();
-            var prog = new ToyAssembler(new ToyAssemblyLexer(new ToyLangCompiler().Compile(new ToyLangParser(new ToyLangLexer(src)).Program(), vmspec))).Assemble();
+            var prog = new ToyAssembler(new ToyAssemblyLexer(new ToyLangCompiler().Compile(new ToyLangParser(new ToyLangLexer(src)).Program(), vmspec)), vmspec).Assemble();
 
             var vm = new ToyStackMachine(vmspec);
 
@@ -245,7 +269,7 @@ function factorial(n){
 
         private static ToyProgram Assemble(string asm)
         {
-            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(asm));
+            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(asm), new ToyStackMachineMemoryConfiguration());
             var prog = assembler.Assemble();
 
             Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
@@ -465,7 +489,7 @@ loopend:
 halt
 ";
 
-            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(input));
+            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(input), new ToyStackMachineMemoryConfiguration());
             var prog = assembler.Assemble();
 
             Console.WriteLine(ToyAssemblyDisassembler.Diassemble(prog));
@@ -530,7 +554,7 @@ halt
         static void testToyStackMachine()
         {
             ToyStackMachine vm = new ToyStackMachine(new ToyStackMachineMemoryConfiguration() { });
-            ToyEmitter e = new ToyEmitter();
+            ToyEmitter e = new ToyEmitter(new ToyStackMachineMemoryConfiguration());
 
             vm.RegisterHostFuntion("hostadd", (m, a) => a.Sum());
             vm.RegisterHostFuntion("hostexp", (m, a) => (int)Math.Pow(a[0], a[1]));

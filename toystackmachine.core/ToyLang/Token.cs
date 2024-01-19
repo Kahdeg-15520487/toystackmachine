@@ -38,6 +38,7 @@
         // Keywords as individual token types
         If, Else, While, Do, For, Break, Continue, Return, Var,
         Function, Print, Read, True, False,
+        Sizeof,
         Host,
 
         OpenParenthesis,

@@ -46,6 +46,14 @@ namespace toystackmachine.core
                 throw new KeyNotFoundException($"Runtime missing dependency:{Environment.NewLine}{string.Join($",{Environment.NewLine}\t", program.Dependency.Except(availableDepedency))}{Environment.NewLine}");
             }
 
+            var constants = program.Constants;
+            foreach (var constant in constants.Forward)
+            {
+                var ptr = constant.Value;
+                var value = constant.Key;
+                SetArrayAt(ptr, value.Select(c => (int)c).ToArray());
+            }
+
             this.loadedProgram = program;
             Array.Copy(program.ROM, 0, memory, config.ProgramStart, program.ROM.Length);
             ip = config.ProgramStart;
@@ -372,12 +380,12 @@ namespace toystackmachine.core
                         Pop();
                         break;
                     case OpCode.PRINT:
-                        Console.WriteLine(Pop());
+                        Console.WriteLine((char)Pop());
                         break;
                     case OpCode.PRINT_ARRAY:
                         {
-                            var arr = GetArrayAt(memory[++ip]);
-                            Console.WriteLine("{0}:{1}", arr.Length, string.Join(", ", arr));
+                            var arr = PopArray();
+                            Console.WriteLine(new string(arr.Select(i => (char)i).ToArray()));
                         }
                         break;
                     case OpCode.CALL_HOST_FUNCTION:

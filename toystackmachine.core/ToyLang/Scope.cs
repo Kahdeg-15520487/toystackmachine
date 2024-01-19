@@ -3,11 +3,27 @@ using System.Collections.Generic;
 
 namespace toystackmachine.core.ToyLang
 {
+    public class ScopeVariable
+    {
+        public string Name { get; set; }
+        public int Size { get; set; }
+        public int Address { get; set; }
+        public Scope Scope { get; set; }
+
+        public ScopeVariable(string name, int size, int address, Scope scope)
+        {
+            Name = name;
+            Size = size;
+            Address = address;
+            Scope = scope;
+        }
+    }
+
     public class Scope
     {
         private ToyStackMachineMemoryConfiguration memoryConfiguration;
         public Scope Parent { get; private set; }
-        private Dictionary<string, int> variables { get; } = new Dictionary<string, int>();
+        private Dictionary<string, ScopeVariable> variables { get; } = new Dictionary<string, ScopeVariable>();
         public int currentMemoryPointer = 0;
         public IEnumerable<string> defined => variables.Keys;
 
@@ -22,12 +38,12 @@ namespace toystackmachine.core.ToyLang
             Parent = parent;
         }
 
-        public int this[string index]
+        public ScopeVariable this[string index]
         {
             get => Find(index);
         }
 
-        private int Find(string name)
+        private ScopeVariable Find(string name)
         {
             if (variables.ContainsKey(name))
             {
@@ -55,7 +71,9 @@ namespace toystackmachine.core.ToyLang
                 {
                     //todo check if there is enough space in the heap
                 }
-                variables.Add(value, currentMemoryPointer);
+                var newVar = new ScopeVariable(value, size, currentMemoryPointer, this);
+                variables.Add(value, newVar);
+                if (size > 1) { currentMemoryPointer += 1; }
                 currentMemoryPointer += size;
             }
         }

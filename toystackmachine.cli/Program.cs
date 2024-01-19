@@ -48,7 +48,7 @@ namespace ToyAssemblerCLI
             string instructions = File.ReadAllText(opts.InstructionFile);
 
             // Instantiate ToyAssembler and assemble the instructions
-            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(instructions));
+            ToyAssembler assembler = new ToyAssembler(new ToyAssemblyLexer(instructions), new ToyStackMachineMemoryConfiguration());
             ToyProgram program = assembler.Assemble();
 
             // Serialize the ToyProgram to a binary file

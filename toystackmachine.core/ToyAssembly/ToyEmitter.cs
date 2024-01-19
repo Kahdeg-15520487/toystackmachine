@@ -9,18 +9,34 @@ namespace toystackmachine.core.ToyAssembly
         private readonly Dictionary<string, int> labels;
         private readonly Dictionary<string, List<int>> unpatchedLabels;
         private readonly List<string> dependency;
+        private readonly Dictionary<string, int> constants;
+        private readonly ToyStackMachineMemoryConfiguration memoryConfiguration;
+        private int currentConstantPointer = 0;
 
-        public ToyEmitter()
+        public ToyEmitter(ToyStackMachineMemoryConfiguration memoryConfiguration)
         {
             this.program = new List<int>();
             this.dependency = new List<string>();
             this.labels = new Dictionary<string, int>();
             this.unpatchedLabels = new Dictionary<string, List<int>>();
+            this.constants = new Dictionary<string, int>();
+            this.memoryConfiguration = memoryConfiguration;
+            this.currentConstantPointer = this.memoryConfiguration.StackMax + 1024;
         }
 
         public void AddDepedency(string hostFunctionName)
         {
             dependency.Add(hostFunctionName);
+        }
+
+        public int AddConstant(string constant)
+        {
+            if (!constants.ContainsKey(constant))
+            {
+                constants.Add(constant, currentConstantPointer);
+                currentConstantPointer += constant.Length + 1;
+            }
+            return constants[constant];
         }
 
         public void Emit(OpCode opcode)
@@ -134,7 +150,7 @@ namespace toystackmachine.core.ToyAssembly
         public ToyProgram Serialize()
         {
             Emit(OpCode.HALT);
-            return new ToyProgram(program.ToArray(), dependency.ToArray(), labels);
+            return new ToyProgram(program.ToArray(), dependency.ToArray(), labels, constants);
         }
     }
 }
