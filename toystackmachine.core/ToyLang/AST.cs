@@ -223,7 +223,8 @@ namespace toystackmachine.core.ToyLang
     }
 
     public class ReadExpression : AST { }
-    public class SizeOfExpression : AST {
+    public class SizeOfExpression : AST
+    {
         public Var v { get; set; }
 
         public SizeOfExpression(Var v)
@@ -267,4 +268,13 @@ namespace toystackmachine.core.ToyLang
         }
     }
 
+    public class ExpressionStatement : AST
+    {
+        public AST Expr { get; set; }
+
+        public ExpressionStatement(AST expr)
+        {
+            Expr = expr;
+        }
+    }
 }

@@ -266,6 +266,10 @@ namespace toystackmachine.core.ToyLang
                         Visit(statement);
                     }
                     break;
+                case ExpressionStatement expressionStatement:
+                    Visit(expressionStatement.Expr);
+                    _instructions.Add("discard");
+                    break;
                 case ReadExpression _:
                     _instructions.Add("callhost hostinput");
                     break;

@@ -55,8 +55,8 @@ namespace toystackmachine.cli
 function main(){
     var a = ""hello"";
     print(sizeof(a));
-    //var b = ""world"";
-    //print(concat(a,b));
+    var b = ""world"";
+    concat(a,b);
 }
 function concat(a,b){
     var c[] = [sizeof(a)+sizeof(b)];

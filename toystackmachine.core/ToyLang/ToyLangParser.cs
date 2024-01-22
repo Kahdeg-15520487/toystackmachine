@@ -94,7 +94,15 @@ namespace toystackmachine.core.ToyLang
             // Statement : AssignmentStatement | ReturnStatement | WhileStatement | ForStatement | Empty
             if (_currentToken.Type == TokenType.Identifier)
             {
-                return AssignmentStatement();
+                var id = Variable();
+                if (_currentToken.Type == TokenType.OpenParenthesis)
+                {
+                    return ExpressionStatement(id);
+                }
+                else
+                {
+                    return AssignmentStatement(v: id);
+                }
             }
             else if (_currentToken.Type == TokenType.Return)
             {
@@ -128,6 +136,22 @@ namespace toystackmachine.core.ToyLang
             {
                 return Empty();
             }
+        }
+
+        private AST ExpressionStatement(AST id)
+        {
+            // ExpressionStatement : Expr SEMICOLON
+            AST result;
+            if (id != null)
+            {
+                result = new ExpressionStatement(FunctionCall((id as Var).Token));
+            }
+            else
+            {
+                result = new ExpressionStatement(Expr());
+            }
+            Eat(TokenType.Semicolon);
+            return result;
         }
 
         public AST CompoundStatement()
@@ -213,10 +237,10 @@ namespace toystackmachine.core.ToyLang
             return new ReturnStatement(expr);
         }
 
-        public AST AssignmentStatement(bool isExpr = false)
+        public AST AssignmentStatement(bool isExpr = false, AST v = null)
         {
             // AssignmentStatement : VARIABLE (LBRACKET Expr RBRACKET)? ASSIGN Expr SEMICOLON
-            var left = Variable();
+            var left = v ?? Variable();
             var token = _currentToken;
             if (token.Type == TokenType.OpenBracket)
             {
